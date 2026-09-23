@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/kevincifuentesdev/flix-backend#readme",
   "dependencies": {
+    "@mux/mux-node": "^15.2.0",
     "better-auth": "^1.7.5",
     "cors": "^2.8.6",
     "dotenv": "^18.0.1",
