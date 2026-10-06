@@ -73,3 +73,20 @@ export async function get_continue_watching(profileId: string, limit = 10) {
     .orderBy(desc(schemas.watchHistory.updatedAt))
     .limit(limit);
 }
+
+export async function get_season_progress(profileId: string, tmdbId: number, seasonNumber: number) {
+  return db
+    .select({
+      episodeNumber: schemas.watchHistory.episodeNumber,
+      progressSeconds: schemas.watchHistory.progressSeconds,
+      durationSeconds: schemas.watchHistory.durationSeconds,
+    })
+    .from(schemas.watchHistory)
+    .where(
+      and(
+        eq(schemas.watchHistory.profileId, profileId),
+        eq(schemas.watchHistory.tmdbId, tmdbId),
+        eq(schemas.watchHistory.seasonNumber, seasonNumber),
+      ),
+    );
+}

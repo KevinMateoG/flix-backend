@@ -13,4 +13,4 @@ export const pgsql = new Pool({
   connectionString: databaseUrl,
 });
 
-export const db = drizzle({ connection: process.env.DATABASE_URL });
+export const db = drizzle(process.env.DATABASE_URL!);
