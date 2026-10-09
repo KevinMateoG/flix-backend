@@ -1,0 +1,62 @@
+import { db } from "../db/db.js";
+import * as schemas from "../db/schema.js";
+import { eq, and, gt, desc } from "drizzle-orm";
+import { sql } from "drizzle-orm";
+export async function update_watch_progress(data) {
+    const completed = data.progressSeconds >= data.durationSeconds * 0.9;
+    await db
+        .insert(schemas.watchHistory)
+        .values({
+        profileId: data.profileId,
+        userId: data.userId,
+        tmdbId: data.tmdbId,
+        mediaType: data.mediaType,
+        title: data.title,
+        posterPath: data.posterPath,
+        muxPlaybackId: data.playbackId,
+        seasonNumber: data.seasonNumber ?? 0,
+        episodeNumber: data.episodeNumber ?? 0,
+        progressSeconds: data.progressSeconds,
+        durationSeconds: data.durationSeconds,
+        completed,
+        completedAt: completed ? new Date() : null,
+        updatedAt: new Date(),
+    })
+        .onConflictDoUpdate({
+        target: [
+            schemas.watchHistory.profileId,
+            schemas.watchHistory.tmdbId,
+            schemas.watchHistory.mediaType,
+            schemas.watchHistory.seasonNumber,
+            schemas.watchHistory.episodeNumber,
+        ],
+        set: {
+            progressSeconds: data.progressSeconds,
+            durationSeconds: data.durationSeconds,
+            completed,
+            completedAt: completed ? new Date() : null,
+            updatedAt: new Date(),
+            title: data.title,
+            posterPath: data.posterPath,
+            muxPlaybackId: data.playbackId,
+        },
+    });
+}
+export async function get_continue_watching(profileId, limit = 10) {
+    return db
+        .select()
+        .from(schemas.watchHistory)
+        .where(and(eq(schemas.watchHistory.profileId, profileId), eq(schemas.watchHistory.completed, false), gt(schemas.watchHistory.progressSeconds, 0)))
+        .orderBy(desc(schemas.watchHistory.updatedAt))
+        .limit(limit);
+}
+export async function get_season_progress(profileId, tmdbId, seasonNumber) {
+    return db
+        .select({
+        episodeNumber: schemas.watchHistory.episodeNumber,
+        progressSeconds: schemas.watchHistory.progressSeconds,
+        durationSeconds: schemas.watchHistory.durationSeconds,
+    })
+        .from(schemas.watchHistory)
+        .where(and(eq(schemas.watchHistory.profileId, profileId), eq(schemas.watchHistory.tmdbId, tmdbId), eq(schemas.watchHistory.seasonNumber, seasonNumber)));
+}
