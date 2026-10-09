@@ -6,6 +6,7 @@ import {
   timestamp,
   boolean,
   integer,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // ==============================================================================
@@ -105,7 +106,9 @@ export const playableContent = pgTable("playable_content", {
   availableRegions: text("available_regions").array(),
 });
 
-export const watchHistory = pgTable("watch_history", {
+export const watchHistory = pgTable(
+  "watch_history",
+  {
   id: bigserial("id", { mode: "number" }).primaryKey().notNull(),
   userId: text("user_id")
     .notNull()
@@ -127,5 +130,15 @@ export const watchHistory = pgTable("watch_history", {
   muxPlaybackId: text("mux_playback_id"),
   device: text("device"),
   createdAt: timestamp("created_at", { withTimezone: true }),
-  updatedAt: timestamp("updated_at", { withTimezone: true }),
-});
+    updatedAt: timestamp("updated_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("watch_history_profile_content_episode_idx").on(
+      table.profileId,
+      table.tmdbId,
+      table.mediaType,
+      table.seasonNumber,
+      table.episodeNumber,
+    ),
+  ],
+);

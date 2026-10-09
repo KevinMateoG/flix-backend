@@ -3,12 +3,18 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./../db/db.ts";
 import * as schema from "../db/schema.ts";
 
+const trustedOrigins = (
+  process.env.BETTER_AUTH_TRUSTED_ORIGINS ??
+  [process.env.FRONTEND_URL, process.env.BACKEND_URL]
+    .filter(Boolean)
+    .join(",")
+)
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 export const auth = betterAuth({
-  trustedOrigins: [
-    process.env.FRONTEND_URL ?? "http://localhost:5173",
-    process.env.BACKEND_URL ?? "http://localhost:3000",
-    "http://10.33.21.171:5173",
-  ],
+  trustedOrigins,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
