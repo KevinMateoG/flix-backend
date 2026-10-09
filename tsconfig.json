@@ -5,7 +5,8 @@
     "rewriteRelativeImportExtensions": true,
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
-    "noEmit": true,
+    "noEmit": false,
+    "outDir": "dist",
     "strict": true,
     "skipLibCheck": true,
     "paths": {
