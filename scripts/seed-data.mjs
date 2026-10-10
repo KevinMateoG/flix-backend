@@ -161,12 +161,32 @@ async function seedWatchHistory() {
   }
 }
 
+async function syncSequences() {
+  for (const table of ["my_list", "watch_history"]) {
+    const result = await client.query(
+      `select
+         pg_get_serial_sequence($1, 'id') as sequence_name,
+         max("id") as max_id
+       from "${table}"`,
+      [`public.${table}`],
+    );
+    const { sequence_name: sequenceName, max_id: maxId } = result.rows[0];
+    const nextValue = maxId === null ? 1 : Number(maxId) + 1;
+
+    await client.query("select setval($1::regclass, $2, false)", [
+      sequenceName,
+      nextValue,
+    ]);
+  }
+}
+
 try {
   await client.connect();
   await seedUsers();
   await seedPlayableContent();
   await seedMyList();
   await seedWatchHistory();
+  await syncSequences();
   console.log("Seed data loaded successfully.");
 } finally {
   await client.end().catch(() => {});
