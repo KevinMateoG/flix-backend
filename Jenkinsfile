@@ -42,7 +42,6 @@ pipeline {
           usernameVariable: 'dockerHubUser'
         )]) {
           sh 'echo "$dockerHubPassword" | docker login -u "$dockerHubUser" --password-stdin'
-          sh 'docker push kevinmateog/flix-backend:$BUILD_NUMBER'
           sh 'docker push kevinmateog/flix-backend:latest'
           sh 'docker logout'
         }
