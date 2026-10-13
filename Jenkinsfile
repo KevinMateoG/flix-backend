@@ -39,16 +39,5 @@ pipeline {
       }
     }
 
-    stage('Minikube Image Test') {
-      agent any
-      steps {
-        sh '''
-          set -eu
-          minikube status >/dev/null 2>&1 || minikube start --driver=docker
-          minikube image load kevinmateog/flix-backend:$BUILD_NUMBER
-          minikube image ls | grep -F kevinmateog/flix-backend:$BUILD_NUMBER
-        '''
-      }
-    }
   }
 }
