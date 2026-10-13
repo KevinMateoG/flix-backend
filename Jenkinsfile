@@ -1,5 +1,5 @@
 pipeline {
-  agent any
+  agent none
 
   environment {
     IMAGE = 'kevinmateog/flix-backend'
@@ -8,6 +8,7 @@ pipeline {
 
   stages {
     stage('Install and build') {
+      agent any
       steps {
         sh '''
           set -eu
@@ -18,11 +19,12 @@ pipeline {
     }
 
     stage('Build and push image') {
+      agent any
       steps {
         script {
           withCredentials([
             usernamePassword(
-              credentialsId: 'dockerhub',
+              credentialsId: 'dockerHub',
               usernameVariable: 'DOCKERHUB_USERNAME',
               passwordVariable: 'DOCKERHUB_TOKEN'
             )
@@ -41,6 +43,7 @@ pipeline {
     }
 
     stage('Validate in Minikube') {
+      agent any
       steps {
         script {
           withCredentials([
@@ -51,7 +54,7 @@ pipeline {
             sh '''
               set -eu
               minikube status >/dev/null 2>&1 || minikube start --driver=docker
-              minikube image load "$IMAGE:$BUILD_NUMBER"
+              minikube image load "kevinmateog/flix-backend:$BUILD_NUMBER"
               kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
               kubectl -n "$NAMESPACE" create secret generic flix-secrets \
                 --from-literal=POSTGRES_PASSWORD="$DB_PASSWORD" \
@@ -107,7 +110,7 @@ pipeline {
                   spec:
                     containers:
                       - name: backend
-                        image: $IMAGE:$BUILD_NUMBER
+                        image: kevinmateog/flix-backend:$BUILD_NUMBER
                         imagePullPolicy: Never
                         ports: [{ containerPort: 3000 }]
                         env:
