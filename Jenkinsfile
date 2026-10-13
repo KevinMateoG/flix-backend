@@ -3,14 +3,24 @@ pipeline {
 
   stages {
     stage('Npm Install') {
-      agent any
+      agent {
+        docker {
+          image 'node:22-alpine'
+          reuseNode true
+        }
+      }
       steps {
         sh 'npm ci'
       }
     }
 
     stage('Build') {
-      agent any
+      agent {
+        docker {
+          image 'node:22-alpine'
+          reuseNode true
+        }
+      }
       steps {
         sh 'npm run build'
       }
