@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "dev": "nodemon --exec npx tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js"
@@ -35,9 +35,13 @@
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.2",
     "@types/pg": "^8.23.1",
+    "@types/supertest": "^7.2.1",
+    "@vitest/coverage-v8": "^5.0.5",
     "drizzle-kit": "^1.0.0-rc.4",
     "nodemon": "^3.1.14",
+    "supertest": "^7.3.1",
     "tsx": "^4.23.13",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
   }
 }
