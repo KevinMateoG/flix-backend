@@ -1,0 +1,36 @@
+meta {
+  name: Check If Disliked
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/dislikes/check?tmdbId={{tmdbId}}&mediaType=movie
+  body: none
+  auth: none
+}
+
+params:query {
+  tmdbId: {{tmdbId}}
+  mediaType: movie
+}
+
+docs {
+  # Check If Disliked
+
+  Checks whether a specific title (`tmdbId` and `mediaType`) is currently disliked by the authenticated user (`GET /api/dislikes/check`).
+  Requires authentication (`authMiddleware`).
+
+  ## Query Parameters
+  | Parameter | Type | Required | Description |
+  | --- | --- | --- | --- |
+  | `tmdbId` | `number` | Yes | Numeric TMDB identifier. |
+  | `mediaType` | `"movie" \| "tv"` | Yes | Content media type. |
+
+  ## Responses
+  - **200 OK**: `{ "disliked": true }` or `{ "disliked": false }`.
+  - **400 Bad Request**: `{ "error": "tmdbId and mediaType are required" }`.
+  - **401 Unauthorized**: `{ "error": "Unauthorized" }`.
+  - **500 Internal Server Error**: `{ "error": "<message>" }`.
+}
+

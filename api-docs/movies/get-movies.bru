@@ -1,0 +1,31 @@
+meta {
+  name: List Playable Movies
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/movies?region={{region}}
+  body: none
+  auth: none
+}
+
+params:query {
+  region: {{region}}
+}
+
+docs {
+  # List Playable Movies
+
+  Returns all playable content entries stored in the `playable_content` table, optionally filtered by availability in a specific ISO 3166-1 alpha-2 country code.
+
+  ## Query Parameters
+  | Parameter | Type | Required | Default | Description |
+  | --- | --- | --- | --- | --- |
+  | `region` | `string` | No | — | ISO country code (e.g., `US`, `MX`, `ES`). If omitted, returns all records. |
+
+  ## Responses
+  - **200 OK**: Array of playable content objects (`tmdbId`, `muxPlaybackId`, `muxAssetId`, `availableRegions`).
+  - **500 Internal Server Error**: `{ "error": "<message>" }`.
+}
+

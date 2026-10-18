@@ -1,0 +1,38 @@
+meta {
+  name: Get Stream Info
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/movies/{{tmdbId}}/stream
+  body: none
+  auth: none
+}
+
+docs {
+  # Get Stream Info
+
+  Retrieves Mux playback metadata and the HLS `.m3u8` stream URL for a playable title.
+
+  ## Path Parameters
+  | Parameter | Type | Required | Description |
+  | --- | --- | --- | --- |
+  | `tmdbId` | `number` | Yes | Numeric TMDB identifier of the title. |
+
+  ## Responses
+  - **200 OK**:
+    ```json
+    {
+      "tmdbId": 157336,
+      "muxPlaybackId": "qxb01i6T202018GGSNzgwtm00hzV02M4FbdQ344Xw2bU6I",
+      "muxAssetId": null,
+      "availableRegions": ["US", "CA", "GB"],
+      "streamUrl": "https://stream.mux.com/qxb01i6T202018GGSNzgwtm00hzV02M4FbdQ344Xw2bU6I.m3u8"
+    }
+    ```
+  - **400 Bad Request**: `{ "error": "tmdbId must be a number" }`.
+  - **404 Not Found**: `{ "error": "No playable content found for this tmdbId" }`.
+  - **500 Internal Server Error**: `{ "error": "<message>" }`.
+}
+
