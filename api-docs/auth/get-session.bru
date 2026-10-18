@@ -1,0 +1,21 @@
+meta {
+  name: Get Session
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/auth/get-session
+  body: none
+  auth: none
+}
+
+docs {
+  # Get Active Session
+
+  Retrieves the active user session and user information from the session cookie or authorization header (`GET /api/auth/get-session`).
+
+  ## Responses
+  - **200 OK**: Returns `{ "session": { ... }, "user": { ... } }` when authenticated, or `null` when no active session exists.
+}
+

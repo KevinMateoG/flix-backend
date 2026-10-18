@@ -1,0 +1,21 @@
+meta {
+  name: Health Check
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/
+  body: none
+  auth: none
+}
+
+docs {
+  # Health Check
+
+  Verifies that the Flix Backend server is running and reachable.
+
+  ## Response
+  - **200 OK**: Plain text string `Flix Backend OK`.
+}
+

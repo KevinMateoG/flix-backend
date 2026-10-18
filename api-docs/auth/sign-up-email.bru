@@ -1,0 +1,49 @@
+meta {
+  name: Sign Up Email
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/auth/sign-up/email
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Jane Doe",
+    "email": "jane.doe@example.com",
+    "password": "StrongPassword123!"
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.token) {
+    bru.setEnvVar("sessionToken", res.body.token);
+  }
+}
+
+docs {
+  # Sign Up with Email and Password
+
+  Registers a new user account via Better Auth (`POST /api/auth/sign-up/email`).
+  A database hook automatically creates a corresponding record in the `profiles` table with the user ID, `displayName` set to `name`, and `region` set to `"US"`.
+
+  ## Request Body
+  | Field | Type | Required | Description |
+  | --- | --- | --- | --- |
+  | `name` | `string` | Yes | Full name or display name of the user. |
+  | `email` | `string` | Yes | Unique email address for the account. |
+  | `password` | `string` | Yes | User password. |
+  | `image` | `string` | No | Optional avatar image URL. |
+
+  ## Responses
+  - **200 OK**: Returns the created user object and session token, and sets the session cookie.
+  - **400 / 422**: Validation error or email already in use.
+}
+

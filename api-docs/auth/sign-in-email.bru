@@ -1,0 +1,46 @@
+meta {
+  name: Sign In Email
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/auth/sign-in/email
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "jane.doe@example.com",
+    "password": "StrongPassword123!"
+  }
+}
+
+script:post-response {
+  if (res.body && res.body.token) {
+    bru.setEnvVar("sessionToken", res.body.token);
+  }
+}
+
+docs {
+  # Sign In with Email and Password
+
+  Authenticates an existing user with email and password via Better Auth (`POST /api/auth/sign-in/email`).
+
+  ## Request Body
+  | Field | Type | Required | Description |
+  | --- | --- | --- | --- |
+  | `email` | `string` | Yes | Registered email address. |
+  | `password` | `string` | Yes | Account password. |
+  | `rememberMe` | `boolean` | No | Whether to persist the session beyond browser closure. |
+
+  ## Responses
+  - **200 OK**: Returns user details and session token, and sets the `better-auth.session_token` cookie.
+  - **401 Unauthorized**: Invalid email or password.
+}
+
