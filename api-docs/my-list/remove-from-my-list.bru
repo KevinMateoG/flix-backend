@@ -1,0 +1,31 @@
+meta {
+  name: Remove From My List
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/api/my-list/{{myListItemId}}
+  body: none
+  auth: none
+}
+
+docs {
+  # Remove Item From My List
+
+  Deletes a specific entry from the authenticated user's list by its internal database row ID (`DELETE /api/my-list/:itemId`).
+  Requires authentication (`authMiddleware`).
+
+  ## Path Parameters
+  | Parameter | Type | Required | Description |
+  | --- | --- | --- | --- |
+  | `itemId` | `number` | Yes | Primary key (`id`) of the `my_list` entry. |
+
+  ## Responses
+  - **200 OK**: `{ "success": true }`.
+  - **400 Bad Request**: `{ "error": "itemId must be a number" }`.
+  - **401 Unauthorized**: `{ "error": "Unauthorized" }`.
+  - **404 Not Found**: `{ "error": "Item not found or not owned by user" }`.
+  - **500 Internal Server Error**: `{ "error": "<message>" }`.
+}
+
