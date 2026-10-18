@@ -18,6 +18,7 @@ API REST del proyecto **Flix** (plataforma de streaming de películas y series).
 8. [Base de datos: migraciones y datos semilla](#8-base-de-datos-migraciones-y-datos-semilla)
 9. [Scripts disponibles](#9-scripts-disponibles)
 10. [Integración continua (Jenkins)](#10-integración-continua-jenkins)
+11. [Documentación de la API](#11-documentación-de-la-api)
 
 ---
 
@@ -276,6 +277,15 @@ El `Jenkinsfile` define un pipeline con las siguientes etapas:
 4. **Docker Push**: inicia sesión en Docker Hub y publica `kevinmateog/flix-backend:latest`.
 
 **Requisitos del servidor Jenkins:** Docker instalado y accesible para el agente, y una credencial de tipo *Username with password* con ID `dockerHub` que contenga las credenciales de Docker Hub.
+
+---
+
+## 11. Documentación de la API
+
+La documentación completa de todos los endpoints, modelos de datos y la colección para [Bruno](https://www.usebruno.com/) se encuentran en el directorio `api-docs/`:
+
+- Referencia detallada de la API: [api-docs/README.md](api-docs/README.md)
+- Colección de Bruno: abre la carpeta `api-docs/` directamente desde el cliente de Bruno y selecciona el entorno `local`.
 
 ---
 
