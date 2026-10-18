@@ -1,0 +1,39 @@
+meta {
+  name: Get Details by TMDB ID
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/tmdb/details/{{tmdbId}}?language={{language}}
+  body: none
+  auth: none
+}
+
+params:query {
+  language: {{language}}
+}
+
+docs {
+  # Get Details by TMDB ID
+
+  Resolves details for a numeric TMDB ID when the caller does not know in advance whether the ID corresponds to a movie or a TV series.
+  The server first attempts `movieDetails(tmdbId)` and, if not found, falls back to `tvDetails(tmdbId)`, augmenting the response with `media_type: "movie" | "tv"`.
+
+  ## Path Parameters
+  | Parameter | Type | Required | Description |
+  | --- | --- | --- | --- |
+  | `tmdbId` | `number` | Yes | Numeric TMDB identifier. |
+
+  ## Query Parameters
+  | Parameter | Type | Required | Default | Description |
+  | --- | --- | --- | --- | --- |
+  | `language` | `string` | No | `en-US` | Localization language tag. |
+
+  ## Responses
+  - **200 OK**: TMDB details object with an added `media_type` field (`"movie"` or `"tv"`).
+  - **400 Bad Request**: `{ "error": "tmdbId must be a number" }`.
+  - **404 Not Found**: `{ "error": "Not found" }`.
+  - **500 Internal Server Error**: `{ "error": "<message>" }`.
+}
+

@@ -1,0 +1,37 @@
+meta {
+  name: Get TV Series Details
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/tmdb/tv/{{tvId}}?language={{language}}
+  body: none
+  auth: none
+}
+
+params:query {
+  language: {{language}}
+}
+
+docs {
+  # Get TV Series Details
+
+  Fetches comprehensive metadata for a TV series from TMDB, automatically appending `credits`, `videos`, `watch/providers`, `recommendations`, and `aggregate_credits`.
+
+  ## Path Parameters
+  | Parameter | Type | Required | Description |
+  | --- | --- | --- | --- |
+  | `id` | `number` | Yes | Numeric TMDB TV series ID. |
+
+  ## Query Parameters
+  | Parameter | Type | Required | Default | Description |
+  | --- | --- | --- | --- | --- |
+  | `language` | `string` | No | `en-US` | Localization language tag. |
+
+  ## Responses
+  - **200 OK**: TMDB TV series details object with appended sub-resources.
+  - **400 Bad Request**: `{ "error": "id must be a number" }`.
+  - **500 Internal Server Error**: `{ "error": "<message>" }`.
+}
+

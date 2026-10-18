@@ -1,0 +1,36 @@
+meta {
+  name: Search Content
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/tmdb/search?q=Interstellar&page=1&language={{language}}
+  body: none
+  auth: none
+}
+
+params:query {
+  q: Interstellar
+  page: 1
+  language: {{language}}
+}
+
+docs {
+  # Search Content
+
+  Performs a multi-search (movies, TV series, and people) against The Movie Database (TMDB) API.
+  If the query `q` is missing or shorter than 2 characters after trimming, the endpoint returns `{ "results": [] }` immediately without querying TMDB.
+
+  ## Query Parameters
+  | Parameter | Type | Required | Default | Description |
+  | --- | --- | --- | --- | --- |
+  | `q` | `string` | Yes | — | Search query string (minimum 2 characters). |
+  | `page` | `number` | No | `1` | Results page number. |
+  | `language` | `string` | No | `en-US` | ISO 639-1 / ISO 3166-1 language tag (e.g., `en-US`, `es-ES`). |
+
+  ## Responses
+  - **200 OK**: Paginated TMDB multi-search response (`page`, `results`, `total_pages`, `total_results`), or `{ "results": [] }`.
+  - **500 Internal Server Error**: `{ "error": "<message>" }`.
+}
+

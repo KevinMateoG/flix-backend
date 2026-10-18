@@ -1,0 +1,35 @@
+meta {
+  name: Get Trending
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/tmdb/trending?type=all&window=week&language={{language}}
+  body: none
+  auth: none
+}
+
+params:query {
+  type: all
+  window: week
+  language: {{language}}
+}
+
+docs {
+  # Get Trending Content
+
+  Fetches trending movies, TV shows, or all content from TMDB for the specified time window.
+
+  ## Query Parameters
+  | Parameter | Type | Required | Default | Description |
+  | --- | --- | --- | --- | --- |
+  | `type` | `string` | No | `all` | Media type: `movie`, `tv`, or `all`. |
+  | `window` | `string` | No | `week` | Time window: `day` or `week`. |
+  | `language` | `string` | No | `en-US` | Localization language tag. |
+
+  ## Responses
+  - **200 OK**: Paginated TMDB trending list.
+  - **500 Internal Server Error**: `{ "error": "<message>" }`.
+}
+
