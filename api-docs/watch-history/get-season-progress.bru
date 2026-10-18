@@ -1,0 +1,40 @@
+meta {
+  name: Get Season Progress
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/watch-history/{{tvId}}/season/{{seasonNumber}}
+  body: none
+  auth: none
+}
+
+docs {
+  # Get Season Progress
+
+  Returns playback progress for all watched episodes of a specific TV series and season for the authenticated user.
+  Requires authentication (`authMiddleware`).
+
+  ## Path Parameters
+  | Parameter | Type | Required | Description |
+  | --- | --- | --- | --- |
+  | `tmdbId` | `number` | Yes | Numeric TMDB TV series ID. |
+  | `seasonNumber` | `number` | Yes | Season number. |
+
+  ## Responses
+  - **200 OK**:
+    ```json
+    [
+      {
+        "episodeNumber": 1,
+        "progressSeconds": 1200,
+        "durationSeconds": 3480
+      }
+    ]
+    ```
+  - **400 Bad Request**: `{ "error": "tmdbId and seasonNumber must be numbers" }`.
+  - **401 Unauthorized**: `{ "error": "Unauthorized" }`.
+  - **500 Internal Server Error**: `{ "error": "<message>" }`.
+}
+
