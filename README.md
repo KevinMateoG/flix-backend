@@ -282,10 +282,12 @@ El `Jenkinsfile` define un pipeline con las siguientes etapas:
 
 ## 11. Documentación de la API
 
-La documentación completa de todos los endpoints, modelos de datos y la colección para [Bruno](https://www.usebruno.com/) se encuentran en el directorio `api-docs/`:
+La documentación de la API está implementada con **Swagger (OpenAPI 3.0)**:
 
-- Referencia detallada de la API: [api-docs/README.md](api-docs/README.md)
-- Colección de Bruno: abre la carpeta `api-docs/` directamente desde el cliente de Bruno y selecciona el entorno `local`.
+- **Swagger UI interactivo** (con el servidor en ejecución): `http://localhost:3000/api-docs`
+- **Especificación OpenAPI 3.0 en JSON (endpoint)**: `http://localhost:3000/api-docs.json`
+- **Especificación OpenAPI 3.0 estática**: [api-docs/openapi.json](api-docs/openapi.json)
+- **Referencia detallada en Markdown**: [api-docs/README.md](api-docs/README.md)
 
 ---
 

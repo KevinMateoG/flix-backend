@@ -3,6 +3,8 @@ import 'dotenv/config';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.ts';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
+import { openApiSpec } from './lib/swagger.ts';
 import moviesRouter from './routes/movies.route.ts';
 import tmdbRouter from './routes/tmdb.route.ts';
 import profileRouter from './routes/profile.route.ts';
@@ -22,6 +24,12 @@ app.use(express.json());
 app.get('/', (req: Request, res: Response) => {
   res.send('Flix Backend OK');
 });
+
+app.get('/api-docs.json', (req: Request, res: Response) => {
+  res.json(openApiSpec);
+});
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
 app.use('/api/movies', moviesRouter);
 app.use('/api/tmdb', tmdbRouter);

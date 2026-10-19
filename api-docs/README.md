@@ -1,6 +1,6 @@
 # Flix Backend API Documentation
 
-Complete reference documentation and Bruno collection for the Flix Backend REST API.
+Complete reference documentation and OpenAPI 3.0 (Swagger) specification for the Flix Backend REST API.
 
 ---
 
@@ -11,11 +11,10 @@ Complete reference documentation and Bruno collection for the Flix Backend REST 
    - [Data Format and Headers](#data-format-and-headers)
    - [Authentication and Session Management](#authentication-and-session-management)
    - [Standard Error Format](#standard-error-format)
-2. [Bruno Collection Guide](#2-bruno-collection-guide)
-   - [Directory Layout](#directory-layout)
-   - [Importing into Bruno](#importing-into-bruno)
-   - [Environment Variables](#environment-variables)
-   - [Authenticating Requests in Bruno](#authenticating-requests-in-bruno)
+2. [Swagger (OpenAPI 3.0) Guide](#2-swagger-openapi-30-guide)
+   - [Interactive Swagger UI](#interactive-swagger-ui)
+   - [OpenAPI 3.0 Specification Files](#openapi-30-specification-files)
+   - [Authenticating Requests in Swagger UI](#authenticating-requests-in-swagger-ui)
 3. [Endpoints Reference](#3-endpoints-reference)
    - [3.1 Health](#31-health)
    - [3.2 Authentication (`/api/auth`)](#32-authentication-apiauth)
@@ -52,6 +51,7 @@ Authentication is powered by **Better Auth** (`better-auth`) mounted at `/api/au
 
 - **Public route groups**:
   - `GET /`
+  - `/api-docs` and `/api-docs.json`
   - `/api/auth/*`
   - `/api/movies/*`
   - `/api/tmdb/*`
@@ -83,91 +83,38 @@ Application routes return errors using a consistent JSON structure:
 
 ---
 
-## 2. Bruno Collection Guide
+## 2. Swagger (OpenAPI 3.0) Guide
 
-This `api-docs` directory is a native **Bruno** collection (`bruno.json` is located at the root of `api-docs`).
+The Flix Backend API is documented using the **OpenAPI 3.0.3** standard and served interactively via `swagger-ui-express`.
 
-### Directory Layout
+### Interactive Swagger UI
+
+With the backend server running (`npm run dev` or via Docker), open the interactive Swagger UI in your browser:
 
 ```text
-api-docs/
-├── bruno.json                              # Bruno collection manifest
-├── collection.bru                          # Collection-level headers and documentation
-├── README.md                               # Complete API reference documentation
-├── environments/
-│   └── local.bru                           # Local environment variables
-├── health/
-│   ├── folder.bru
-│   └── health-check.bru                    # GET /
-├── auth/
-│   ├── folder.bru
-│   ├── sign-up-email.bru                   # POST /api/auth/sign-up/email
-│   ├── sign-in-email.bru                   # POST /api/auth/sign-in/email
-│   ├── get-session.bru                     # GET /api/auth/get-session
-│   └── sign-out.bru                        # POST /api/auth/sign-out
-├── movies/
-│   ├── folder.bru
-│   ├── get-movies.bru                      # GET /api/movies
-│   ├── check-playable.bru                  # GET /api/movies/:tmdbId/playable
-│   └── get-stream.bru                      # GET /api/movies/:tmdbId/stream
-├── tmdb/
-│   ├── folder.bru
-│   ├── search.bru                          # GET /api/tmdb/search
-│   ├── trending.bru                        # GET /api/tmdb/trending
-│   ├── popular.bru                         # GET /api/tmdb/popular
-│   ├── top-rated.bru                       # GET /api/tmdb/top-rated
-│   ├── movie-details.bru                   # GET /api/tmdb/movie/:id
-│   ├── tv-details.bru                      # GET /api/tmdb/tv/:id
-│   ├── season-details.bru                  # GET /api/tmdb/tv/:id/season/:season
-│   └── details-by-id.bru                   # GET /api/tmdb/details/:tmdbId
-├── profile/
-│   ├── folder.bru
-│   ├── get-my-profile.bru                  # GET /api/profile/me
-│   ├── update-region.bru                   # PATCH /api/profile/region
-│   └── update-settings.bru                 # PATCH /api/profile/settings
-├── watch-history/
-│   ├── folder.bru
-│   ├── get-continue-watching.bru           # GET /api/watch-history
-│   ├── update-progress.bru                 # POST /api/watch-history/update-progress
-│   └── get-season-progress.bru             # GET /api/watch-history/:tmdbId/season/:seasonNumber
-├── my-list/
-│   ├── folder.bru
-│   ├── get-my-list.bru                     # GET /api/my-list
-│   ├── toggle-my-list.bru                  # POST /api/my-list/toggle
-│   ├── check-my-list.bru                   # GET /api/my-list/check
-│   └── remove-from-my-list.bru             # DELETE /api/my-list/:itemId
-└── dislikes/
-    ├── folder.bru
-    ├── toggle-dislike.bru                  # POST /api/dislikes/toggle
-    └── check-dislike.bru                   # GET /api/dislikes/check
+http://localhost:3000/api-docs
 ```
 
-### Importing into Bruno
+And the raw OpenAPI 3.0 JSON specification is served at:
 
-1. Open the **Bruno** desktop client.
-2. Click **Open Collection** and select the `api-docs` directory (`/path/to/flix-backend/api-docs`).
-3. Select the **local** environment from the environment selector in the top-right corner.
+```text
+http://localhost:3000/api-docs.json
+```
 
-### Environment Variables
+### OpenAPI 3.0 Specification Files
 
-Defined in `environments/local.bru`:
+| File | Description |
+| --- | --- |
+| `src/lib/swagger.ts` | TypeScript module exporting `openApiSpec` mounted by Express at `/api-docs` and `/api-docs.json`. |
+| `api-docs/openapi.json` | Standalone OpenAPI 3.0.3 JSON specification file suitable for importing into Swagger Editor, Postman, Insomnia, or code generators. |
+| `api-docs/README.md` | Complete Markdown reference documentation of all endpoints and schemas. |
 
-| Variable | Default Value | Description |
-| --- | --- | --- |
-| `baseUrl` | `http://localhost:3000` | Base URL of the Flix Backend server. |
-| `tmdbId` | `157336` | Sample TMDB movie ID (*Interstellar*, included in seed data). |
-| `tvId` | `1396` | Sample TMDB TV series ID (*Breaking Bad*). |
-| `seasonNumber` | `1` | Sample season number for TV endpoints. |
-| `region` | `US` | Default ISO 3166-1 alpha-2 region code. |
-| `language` | `en-US` | Default localization language tag. |
-| `myListItemId` | `1` | Sample internal row ID for `DELETE /api/my-list/:itemId`. |
-| `sessionToken` | *(secret)* | Automatically populated by post-response scripts in `Sign Up Email` and `Sign In Email`. |
+### Authenticating Requests in Swagger UI
 
-### Authenticating Requests in Bruno
-
-1. Run **Auth > Sign Up Email** (first time) or **Auth > Sign In Email**.
-2. Bruno automatically stores the `better-auth.session_token` cookie in its cookie jar for `localhost` and sends it on subsequent requests to protected endpoints (`/api/profile`, `/api/watch-history`, `/api/my-list`, `/api/dislikes`).
-3. Verify your active session at any time by running **Auth > Get Session**.
+1. Open `http://localhost:3000/api-docs` in your browser.
+2. Expand **Auth > POST `/api/auth/sign-up/email`** or **POST `/api/auth/sign-in/email`**, click **Try it out**, and execute the request with valid credentials.
+3. Because Swagger UI runs on the same origin (`http://localhost:3000`), the browser automatically stores the `better-auth.session_token` cookie and sends it with subsequent requests to protected routes (`/api/profile`, `/api/watch-history`, `/api/my-list`, `/api/dislikes`).
+4. Alternatively, copy the `token` returned in the login response, click the **Authorize** button at the top of Swagger UI, and paste the token under `bearerAuth` or `cookieAuth`.
 
 ---
 
