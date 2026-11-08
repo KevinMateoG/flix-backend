@@ -25,11 +25,18 @@ export function toUpdateProfileSettingsInput(
   };
 }
 
+function defaultAvatarUrl(): string {
+  const base = (
+    process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`
+  ).replace(/\/+$/, "");
+  return `${base}/static/default-avatar.svg`;
+}
+
 export function toProfileResponseDto(profile: Profile): ProfileResponseDto {
   return {
     id: profile.id,
     displayName: profile.displayName,
-    avatarUrl: profile.avatarUrl,
+    avatarUrl: profile.avatarUrl ?? defaultAvatarUrl(),
     plan: profile.plan,
     memberSince: profile.memberSince,
     region: profile.region,
