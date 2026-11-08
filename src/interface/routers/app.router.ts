@@ -14,6 +14,10 @@ import { type PlaybackUseCase } from "../../application/playback.use-case.ts";
 import { type ProfileUseCase } from "../../application/profile.use-case.ts";
 import { type TmdbUseCase } from "../../application/tmdb.use-case.ts";
 import { CatalogController } from "../controllers/catalog.controller.ts";
+import {
+  DEFAULT_AVATAR_PATH,
+  DEFAULT_AVATAR_SVG,
+} from "../assets/default-avatar.ts";
 import { HistoryController } from "../controllers/history.controller.ts";
 import { LibraryController } from "../controllers/library.controller.ts";
 import { PlaybackController } from "../controllers/playback.controller.ts";
@@ -59,6 +63,13 @@ export function createApp(deps: AppDependencies): Express {
 
   app.get("/", (_req: Request, res: Response) => {
     res.send("Flix Backend OK");
+  });
+
+  app.get(DEFAULT_AVATAR_PATH, (_req: Request, res: Response) => {
+    res
+      .type("image/svg+xml")
+      .set("Cache-Control", "public, max-age=86400")
+      .send(DEFAULT_AVATAR_SVG);
   });
 
   app.get("/api-docs.json", (_req: Request, res: Response) => {
