@@ -5,6 +5,11 @@ import {
   type ToggleResult,
 } from "../domain/models/library-item.ts";
 import { type LibraryRepository } from "../domain/repository/library.repository.ts";
+import {
+  requireMediaType,
+  requireNonEmptyString,
+  requirePositiveInteger,
+} from "./errors/validation.ts";
 
 export class LibraryUseCase {
   private readonly libraryRepository: LibraryRepository;
@@ -14,7 +19,9 @@ export class LibraryUseCase {
   }
 
   async getMyList(profileId: string): Promise<LibraryItem[]> {
-    return this.libraryRepository.getMyList(profileId);
+    const validProfileId = requireNonEmptyString(profileId, "profileId");
+
+    return this.libraryRepository.getMyList(validProfileId);
   }
 
   async toggleMyList(
@@ -22,14 +29,14 @@ export class LibraryUseCase {
     tmdbId: number,
     mediaType?: MediaType,
   ): Promise<ToggleResult> {
-    if (!tmdbId || isNaN(tmdbId) || !mediaType) {
-      throw AppError.badRequest("tmdbId and mediaType are required");
-    }
+    const validProfileId = requireNonEmptyString(profileId, "profileId");
+    requirePositiveInteger(tmdbId, "tmdbId");
+    const validMediaType = requireMediaType(mediaType);
 
     const existing = await this.libraryRepository.findMyListItem(
-      profileId,
+      validProfileId,
       tmdbId,
-      mediaType,
+      validMediaType,
     );
 
     if (existing) {
@@ -38,9 +45,9 @@ export class LibraryUseCase {
     }
 
     await this.libraryRepository.addMyListItem(
-      profileId,
+      validProfileId,
       tmdbId,
-      mediaType,
+      validMediaType,
       new Date(),
     );
     return { added: true };
@@ -50,13 +57,12 @@ export class LibraryUseCase {
     profileId: string,
     itemId: number,
   ): Promise<{ success: boolean }> {
-    if (isNaN(itemId)) {
-      throw AppError.badRequest("itemId must be a number");
-    }
+    const validProfileId = requireNonEmptyString(profileId, "profileId");
+    requirePositiveInteger(itemId, "itemId");
 
     const deleted = await this.libraryRepository.removeMyListItemForProfile(
       itemId,
-      profileId,
+      validProfileId,
     );
 
     if (!deleted) {
@@ -71,14 +77,14 @@ export class LibraryUseCase {
     tmdbId: number,
     mediaType?: MediaType,
   ): Promise<{ inList: boolean }> {
-    if (isNaN(tmdbId) || !mediaType) {
-      throw AppError.badRequest("tmdbId and mediaType are required");
-    }
+    const validProfileId = requireNonEmptyString(profileId, "profileId");
+    requirePositiveInteger(tmdbId, "tmdbId");
+    const validMediaType = requireMediaType(mediaType);
 
     const existing = await this.libraryRepository.findMyListItem(
-      profileId,
+      validProfileId,
       tmdbId,
-      mediaType,
+      validMediaType,
     );
     return { inList: Boolean(existing) };
   }
@@ -88,14 +94,14 @@ export class LibraryUseCase {
     tmdbId: number,
     mediaType?: MediaType,
   ): Promise<ToggleResult> {
-    if (!tmdbId || isNaN(tmdbId) || !mediaType) {
-      throw AppError.badRequest("tmdbId and mediaType are required");
-    }
+    const validProfileId = requireNonEmptyString(profileId, "profileId");
+    requirePositiveInteger(tmdbId, "tmdbId");
+    const validMediaType = requireMediaType(mediaType);
 
     const existing = await this.libraryRepository.findDislikeItem(
-      profileId,
+      validProfileId,
       tmdbId,
-      mediaType,
+      validMediaType,
     );
 
     if (existing) {
@@ -104,9 +110,9 @@ export class LibraryUseCase {
     }
 
     await this.libraryRepository.addDislikeItem(
-      profileId,
+      validProfileId,
       tmdbId,
-      mediaType,
+      validMediaType,
       new Date(),
     );
     return { added: true };
@@ -117,14 +123,14 @@ export class LibraryUseCase {
     tmdbId: number,
     mediaType?: MediaType,
   ): Promise<{ disliked: boolean }> {
-    if (isNaN(tmdbId) || !mediaType) {
-      throw AppError.badRequest("tmdbId and mediaType are required");
-    }
+    const validProfileId = requireNonEmptyString(profileId, "profileId");
+    requirePositiveInteger(tmdbId, "tmdbId");
+    const validMediaType = requireMediaType(mediaType);
 
     const existing = await this.libraryRepository.findDislikeItem(
-      profileId,
+      validProfileId,
       tmdbId,
-      mediaType,
+      validMediaType,
     );
     return { disliked: Boolean(existing) };
   }

@@ -4,6 +4,7 @@ import {
   type UpdateProfileSettingsInput,
 } from "../domain/models/profile.ts";
 import { type ProfileRepository } from "../domain/repository/profile.repository.ts";
+import { requireNonEmptyString } from "./errors/validation.ts";
 
 export class ProfileUseCase {
   private readonly profileRepository: ProfileRepository;
@@ -13,7 +14,9 @@ export class ProfileUseCase {
   }
 
   async getProfile(userId: string): Promise<Profile> {
-    const profile = await this.profileRepository.findById(userId);
+    const validUserId = requireNonEmptyString(userId, "userId");
+
+    const profile = await this.profileRepository.findById(validUserId);
     if (!profile) {
       throw AppError.notFound("Profile not found");
     }
@@ -21,26 +24,37 @@ export class ProfileUseCase {
   }
 
   async updateRegion(userId: string, region: unknown): Promise<Profile | null> {
-    if (!region || typeof region !== "string") {
-      throw AppError.badRequest("region is required and must be a string");
-    }
-    return this.profileRepository.updateRegion(userId, region);
+    const validUserId = requireNonEmptyString(userId, "userId");
+    const validRegion = requireNonEmptyString(region, "region");
+    return this.profileRepository.updateRegion(validUserId, validRegion);
   }
 
   async updateSettings(
     userId: string,
     data: UpdateProfileSettingsInput,
   ): Promise<Profile> {
+    const validUserId = requireNonEmptyString(userId, "userId");
+    if (!data || typeof data !== "object") {
+      throw AppError.badRequest("No valid fields to update");
+    }
     const hasValidField =
       data.language !== undefined ||
       data.maturityRating !== undefined ||
       data.isKids !== undefined;
 
-    if (!hasValidField) {
+    if (
+      !hasValidField ||
+      (data.language !== undefined &&
+        (typeof data.language !== "string" || data.language.trim().length === 0)) ||
+      (data.maturityRating !== undefined &&
+        (typeof data.maturityRating !== "string" ||
+          data.maturityRating.trim().length === 0)) ||
+      (data.isKids !== undefined && typeof data.isKids !== "boolean")
+    ) {
       throw AppError.badRequest("No valid fields to update");
     }
 
-    const updated = await this.profileRepository.updateSettings(userId, data);
+    const updated = await this.profileRepository.updateSettings(validUserId, data);
     if (!updated) {
       throw AppError.badRequest("No valid fields to update");
     }

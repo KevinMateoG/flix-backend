@@ -1,6 +1,7 @@
 import { AppError } from "./errors/app.error.ts";
 import { type StreamInfo } from "../domain/models/playable-content.ts";
 import { type PlayableContentRepository } from "../domain/repository/playable-content.repository.ts";
+import { requirePositiveInteger } from "./errors/validation.ts";
 
 export interface PlaybackStreamPort {
   getSignedPlaybackUrl(playbackId: string, expiresIn?: number): Promise<string>;
@@ -19,9 +20,7 @@ export class PlaybackUseCase {
   }
 
   async getStreamInfo(tmdbId: number): Promise<StreamInfo> {
-    if (isNaN(tmdbId)) {
-      throw AppError.badRequest("tmdbId must be a number");
-    }
+    requirePositiveInteger(tmdbId, "tmdbId");
 
     const content = await this.playableContentRepository.findByTmdbId(tmdbId);
     if (!content) {

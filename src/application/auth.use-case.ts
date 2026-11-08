@@ -3,6 +3,7 @@ import { type AuthSession, type User } from "../domain/models/user.ts";
 import { type Profile } from "../domain/models/profile.ts";
 import { type ProfileRepository } from "../domain/repository/profile.repository.ts";
 import { type UserRepository } from "../domain/repository/user.repository.ts";
+import { requireNonEmptyString } from "./errors/validation.ts";
 
 export interface AuthSessionPort {
   getSession(headers: Record<string, string | string[] | undefined>): Promise<AuthSession | null>;
@@ -34,7 +35,9 @@ export class AuthUseCase {
   }
 
   async getUserById(userId: string): Promise<User | null> {
-    return this.userRepository.findById(userId);
+    const validUserId = requireNonEmptyString(userId, "userId");
+
+    return this.userRepository.findById(validUserId);
   }
 
   async initializeProfileForNewUser(
@@ -42,6 +45,17 @@ export class AuthUseCase {
     displayName: string,
     defaultRegion = "US",
   ): Promise<Profile> {
-    return this.profileRepository.createDefault(userId, displayName, defaultRegion);
+    const validUserId = requireNonEmptyString(userId, "userId");
+    const validDisplayName = requireNonEmptyString(displayName, "displayName");
+    const validDefaultRegion = requireNonEmptyString(
+      defaultRegion,
+      "defaultRegion",
+    );
+
+    return this.profileRepository.createDefault(
+      validUserId,
+      validDisplayName,
+      validDefaultRegion,
+    );
   }
 }
