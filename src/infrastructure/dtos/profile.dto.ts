@@ -13,7 +13,7 @@ export interface UpdateProfileSettingsRequestDto {
   isKids?: boolean;
 }
 
-export type ProfileResponseDto = Profile;
+export type ProfileResponseDto = Omit<Profile, "avatarPath">;
 
 export function toUpdateProfileSettingsInput(
   body: UpdateProfileSettingsRequestDto,

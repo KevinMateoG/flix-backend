@@ -16,6 +16,7 @@ import { DrizzleProfileRepository } from "./infrastructure/repository/drizzle-pr
 import { DrizzleUserRepository } from "./infrastructure/repository/drizzle-user.repository.ts";
 import { DrizzleWatchHistoryRepository } from "./infrastructure/repository/drizzle-watch-history.repository.ts";
 import { muxService } from "./infrastructure/services/mux.service.ts";
+import { avatarStorage } from "./infrastructure/services/s3-avatar-storage.service.ts";
 import { tmdbService } from "./infrastructure/services/tmdb.service.ts";
 import { createApp } from "./interface/routers/app.router.ts";
 
@@ -33,7 +34,7 @@ export const app = createApp({
     userRepository,
     profileRepository,
   ),
-  profileUseCase: new ProfileUseCase(profileRepository),
+  profileUseCase: new ProfileUseCase(profileRepository, avatarStorage),
   libraryUseCase: new LibraryUseCase(libraryRepository),
   historyUseCase: new HistoryUseCase(watchHistoryRepository),
   catalogUseCase: new CatalogUseCase(playableContentRepository),

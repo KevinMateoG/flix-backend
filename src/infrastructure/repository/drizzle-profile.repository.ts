@@ -45,6 +45,22 @@ export class DrizzleProfileRepository implements ProfileRepository {
     return result[0] ?? null;
   }
 
+  async updateAvatar(
+    userId: string,
+    avatar: { url: string; path: string } | null,
+  ): Promise<Profile | null> {
+    const result = await db
+      .update(schema.profiles)
+      .set({
+        avatarUrl: avatar?.url ?? null,
+        avatarPath: avatar?.path ?? null,
+      })
+      .where(eq(schema.profiles.id, userId))
+      .returning();
+
+    return result[0] ?? null;
+  }
+
   async updateSettings(
     userId: string,
     settings: UpdateProfileSettingsInput,

@@ -11,6 +11,10 @@ export interface ProfileRepository {
     region?: string,
   ): Promise<Profile>;
   updateRegion(userId: string, region: string): Promise<Profile | null>;
+  updateAvatar(
+    userId: string,
+    avatar: { url: string; path: string } | null,
+  ): Promise<Profile | null>;
   updateSettings(
     userId: string,
     settings: UpdateProfileSettingsInput,

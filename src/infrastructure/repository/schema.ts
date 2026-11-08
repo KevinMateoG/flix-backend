@@ -70,6 +70,7 @@ export const profiles = pgTable("profiles", {
     .references(() => user.id, { onDelete: "cascade" }),
   displayName: text("display_name"),
   avatarUrl: text("avatar_url"),
+  avatarPath: text("avatar_path"),
   plan: text("plan"),
   memberSince: timestamp("member_since", { withTimezone: true }),
   region: text("region"),

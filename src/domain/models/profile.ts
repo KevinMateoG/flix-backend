@@ -2,6 +2,7 @@ export interface Profile {
   id: string;
   displayName: string | null;
   avatarUrl: string | null;
+  avatarPath: string | null;
   plan: string | null;
   memberSince: Date | null;
   region: string | null;
