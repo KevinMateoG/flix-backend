@@ -37,6 +37,9 @@ try {
       `create unique index if not exists "watch_history_profile_content_episode_idx"
        on "watch_history" ("profile_id", "tmdb_id", "media_type", "season_number", "episode_number")`,
     );
+    await client.query(
+      `alter table "user" add column if not exists "role" text not null default 'user'`,
+    );
   }
 } finally {
   await client.end().catch(() => {});

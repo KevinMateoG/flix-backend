@@ -67,6 +67,7 @@ CREATE TABLE "user" (
 	"email" text NOT NULL UNIQUE,
 	"emailVerified" boolean NOT NULL,
 	"image" text,
+	"role" text DEFAULT 'user' NOT NULL,
 	"createdAt" timestamp NOT NULL,
 	"updatedAt" timestamp NOT NULL
 );

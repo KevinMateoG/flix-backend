@@ -291,6 +291,7 @@ function createTestHarness() {
     email: "test1@flix.local",
     emailVerified: true,
     image: null,
+    role: "user",
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
   };
