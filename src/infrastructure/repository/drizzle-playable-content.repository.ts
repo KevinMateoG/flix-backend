@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql, type SQL } from "drizzle-orm";
 import { db } from "./client.ts";
 import * as schema from "./schema.ts";
 import {
@@ -6,39 +6,74 @@ import {
   type PlayableContent,
   type UpdatePlayableContentInput,
 } from "../../domain/models/playable-content.ts";
+import { type EntityStatusFilter } from "../../domain/models/user.ts";
 import { type PlayableContentRepository } from "../../domain/repository/playable-content.repository.ts";
+
+function normalizePlayableContent(row: PlayableContent): PlayableContent {
+  return {
+    ...row,
+    muxAssetId:
+      row.muxAssetId && row.muxAssetId.trim().toLowerCase() !== "null"
+        ? row.muxAssetId
+        : null,
+  };
+}
 
 export class DrizzlePlayableContentRepository
   implements PlayableContentRepository
 {
-  async findAll(region?: string): Promise<PlayableContent[]> {
-    const whereClause = region
-      ? and(
-          eq(schema.playableContent.isActive, true),
-          sql`${schema.playableContent.availableRegions} @> ARRAY[${region}]::text[]`,
-        )
-      : eq(schema.playableContent.isActive, true);
+  async findAll(
+    region?: string,
+    status: EntityStatusFilter = "active",
+  ): Promise<PlayableContent[]> {
+    const conditions: SQL[] = [];
 
-    return db
+    if (status === "active") {
+      conditions.push(eq(schema.playableContent.isActive, true));
+    } else if (status === "inactive") {
+      conditions.push(eq(schema.playableContent.isActive, false));
+    }
+
+    if (region) {
+      conditions.push(
+        sql`${schema.playableContent.availableRegions} @> ARRAY[${region}]::text[]`,
+      );
+    }
+
+    const whereClause =
+      conditions.length === 0
+        ? undefined
+        : conditions.length === 1
+          ? conditions[0]
+          : and(...conditions);
+
+    const rows = await db
       .select()
       .from(schema.playableContent)
       .where(whereClause)
       .orderBy(asc(schema.playableContent.tmdbId));
+
+    return rows.map(normalizePlayableContent);
   }
 
-  async findByTmdbId(tmdbId: number): Promise<PlayableContent | null> {
+  async findByTmdbId(
+    tmdbId: number,
+    includeInactive = false,
+  ): Promise<PlayableContent | null> {
+    const whereClause = includeInactive
+      ? eq(schema.playableContent.tmdbId, tmdbId)
+      : and(
+          eq(schema.playableContent.tmdbId, tmdbId),
+          eq(schema.playableContent.isActive, true),
+        );
+
     const result = await db
       .select()
       .from(schema.playableContent)
-      .where(
-        and(
-          eq(schema.playableContent.tmdbId, tmdbId),
-          eq(schema.playableContent.isActive, true),
-        ),
-      )
+      .where(whereClause)
       .limit(1);
 
-    return result[0] ?? null;
+    return result[0] ? normalizePlayableContent(result[0]) : null;
   }
 
   async isPlayableInRegion(tmdbId: number, region: string): Promise<boolean> {

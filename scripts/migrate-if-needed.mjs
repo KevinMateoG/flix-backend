@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { spawnSync } from "node:child_process";
 import pg from "pg";
 
@@ -13,7 +14,14 @@ const tables = [
   "watch_history",
 ];
 
-const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+const migrationUrl =
+  process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
+
+if (!migrationUrl) {
+  throw new Error("DATABASE_URL or DATABASE_URL_UNPOOLED is required");
+}
+
+const client = new pg.Client({ connectionString: migrationUrl });
 let existingTables = 0;
 
 try {
@@ -33,6 +41,9 @@ try {
       `alter table "user" add column if not exists "role" text not null default 'user'`,
     );
     await client.query(
+      `alter table "user" add column if not exists "is_active" boolean not null default true`,
+    );
+    await client.query(
       `alter table "playable_content" add column if not exists "is_active" boolean not null default true`,
     );
     await client.query(
@@ -47,18 +58,21 @@ try {
 }
 
 if (existingTables === tables.length) {
-  console.log("Database tables already exist; skipping migrations.");
-  process.exit(0);
+  console.log("Database tables already exist; checking pending migrations.");
+} else {
+  console.log(
+    `Database schema is incomplete (${existingTables}/${tables.length} tables); applying migrations.`,
+  );
 }
-
-console.log(
-  `Database schema is incomplete (${existingTables}/${tables.length} tables); applying migrations.`,
-);
 
 const migration = spawnSync(
   "npx",
   ["drizzle-kit", "migrate", "--config=drizzle.config.ts"],
-  { stdio: "inherit", shell: true },
+  {
+    stdio: "inherit",
+    shell: true,
+    env: { ...process.env, DATABASE_URL: migrationUrl },
+  },
 );
 
 if (migration.status !== 0) {

@@ -1,3 +1,5 @@
+import { type EntityStatusFilter } from "./user.ts";
+
 export interface PlayableContent {
   tmdbId: number;
   muxPlaybackId: string;
@@ -24,6 +26,7 @@ export interface CatalogFilterOptions {
   region?: string;
   search?: string;
   tmdbId?: number;
+  status?: EntityStatusFilter;
 }
 
 export interface StreamInfo extends PlayableContent {

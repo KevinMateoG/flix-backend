@@ -111,7 +111,7 @@ async function seedPlayableContent() {
       `insert into "playable_content" ("tmdb_id", "mux_playback_id", "mux_asset_id", "available_regions")
        values ($1, $2, $3, $4)
        on conflict ("tmdb_id") do nothing`,
-      [Number(row.tmdb_id), row.mux_playback_id, row.mux_asset_id, regions],
+      [Number(row.tmdb_id), row.mux_playback_id, nullable(row.mux_asset_id), regions],
     );
   }
 }

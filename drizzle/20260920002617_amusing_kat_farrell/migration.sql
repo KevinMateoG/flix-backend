@@ -70,6 +70,7 @@ CREATE TABLE "user" (
 	"emailVerified" boolean NOT NULL,
 	"image" text,
 	"role" text DEFAULT 'user' NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
 	"createdAt" timestamp NOT NULL,
 	"updatedAt" timestamp NOT NULL
 );
