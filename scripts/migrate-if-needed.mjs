@@ -40,6 +40,15 @@ try {
     await client.query(
       `alter table "user" add column if not exists "role" text not null default 'user'`,
     );
+    await client.query(
+      `alter table "playable_content" add column if not exists "is_active" boolean not null default true`,
+    );
+    await client.query(
+      `alter table "my_list" add column if not exists "is_active" boolean not null default true`,
+    );
+    await client.query(
+      `alter table "watch_history" add column if not exists "is_active" boolean not null default true`,
+    );
   }
 } finally {
   await client.end().catch(() => {});

@@ -27,14 +27,16 @@ CREATE TABLE "my_list" (
 	"profile_id" text NOT NULL,
 	"tmdb_id" bigint NOT NULL,
 	"media_type" text NOT NULL,
-	"added_at" timestamp with time zone
+	"added_at" timestamp with time zone,
+	"is_active" boolean DEFAULT true NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "playable_content" (
 	"tmdb_id" bigint PRIMARY KEY,
 	"mux_playback_id" text NOT NULL,
 	"mux_asset_id" text,
-	"available_regions" text[]
+	"available_regions" text[],
+	"is_active" boolean DEFAULT true NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "profiles" (
@@ -98,6 +100,7 @@ CREATE TABLE "watch_history" (
 	"completed_at" timestamp with time zone,
 	"mux_playback_id" text,
 	"device" text,
+	"is_active" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp with time zone,
 	"updated_at" timestamp with time zone
 );

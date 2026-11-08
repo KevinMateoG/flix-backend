@@ -98,6 +98,7 @@ export const myList = pgTable("my_list", {
   tmdbId: bigint("tmdb_id", { mode: "number" }).notNull(),
   mediaType: text("media_type").notNull(),
   addedAt: timestamp("added_at", { withTimezone: true }),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
 export const playableContent = pgTable("playable_content", {
@@ -105,6 +106,7 @@ export const playableContent = pgTable("playable_content", {
   muxPlaybackId: text("mux_playback_id").notNull(),
   muxAssetId: text("mux_asset_id"),
   availableRegions: text("available_regions").array(),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
 export const watchHistory = pgTable(
@@ -130,6 +132,7 @@ export const watchHistory = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true }),
     muxPlaybackId: text("mux_playback_id"),
     device: text("device"),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }),
     updatedAt: timestamp("updated_at", { withTimezone: true }),
   },
