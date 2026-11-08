@@ -1,0 +1,2532 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Flix Backend API",
+    "version": "1.0.0",
+    "description": "REST API for the Flix streaming platform. Manages user authentication, profiles, playable content, Mux HLS streaming, TMDB metadata integration, watch history, personal watchlists (My List), and content dislikes."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local / Configured Server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Service availability and health check endpoints."
+    },
+    {
+      "name": "Auth",
+      "description": "User registration, login, logout, and session retrieval powered by Better Auth."
+    },
+    {
+      "name": "Movies",
+      "description": "Playable catalog lookup, regional playability checks, and Mux HLS stream generation."
+    },
+    {
+      "name": "TMDB",
+      "description": "Proxy endpoints for The Movie Database (TMDB) search, discovery, and metadata."
+    },
+    {
+      "name": "Profile",
+      "description": "Authenticated user profile retrieval and preference updates."
+    },
+    {
+      "name": "Watch History",
+      "description": "Playback progress tracking and Continue Watching list management."
+    },
+    {
+      "name": "My List",
+      "description": "Authenticated user personal watchlist management."
+    },
+    {
+      "name": "Dislikes",
+      "description": "Authenticated user disliked content management."
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "better-auth.session_token",
+        "description": "Session token cookie set automatically after signing in or signing up via /api/auth."
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Session token passed in the Authorization header."
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Descriptive error message"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "user_2abc123def456"
+          },
+          "name": {
+            "type": "string",
+            "example": "Jane Doe"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "jane.doe@example.com"
+          },
+          "emailVerified": {
+            "type": "boolean",
+            "example": false
+          },
+          "image": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-18T18:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-18T18:00:00.000Z"
+          }
+        }
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "sess_9xyz876"
+          },
+          "userId": {
+            "type": "string",
+            "example": "user_2abc123def456"
+          },
+          "token": {
+            "type": "string",
+            "example": "tok_secret_session_token"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-25T18:00:00.000Z"
+          },
+          "ipAddress": {
+            "type": "string",
+            "nullable": true,
+            "example": "127.0.0.1"
+          },
+          "userAgent": {
+            "type": "string",
+            "nullable": true,
+            "example": "Mozilla/5.0"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-18T18:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-18T18:00:00.000Z"
+          }
+        }
+      },
+      "Profile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "user_2abc123def456"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true,
+            "example": "Jane Doe"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "plan": {
+            "type": "string",
+            "nullable": true,
+            "example": "standard"
+          },
+          "memberSince": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2026-10-18T18:00:00.000Z"
+          },
+          "region": {
+            "type": "string",
+            "nullable": true,
+            "example": "US"
+          },
+          "language": {
+            "type": "string",
+            "nullable": true,
+            "example": "en-US"
+          },
+          "maturityRating": {
+            "type": "string",
+            "nullable": true,
+            "example": "TV-MA"
+          },
+          "isKids": {
+            "type": "boolean",
+            "nullable": true,
+            "example": false
+          },
+          "regionSource": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "PlayableContent": {
+        "type": "object",
+        "properties": {
+          "tmdbId": {
+            "type": "integer",
+            "example": 157336
+          },
+          "muxPlaybackId": {
+            "type": "string",
+            "example": "qxb01i6T202018GGSNzgwtm00hzV02M4FbdQ344Xw2bU6I"
+          },
+          "muxAssetId": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "availableRegions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "US",
+              "CA",
+              "GB",
+              "MX",
+              "ES"
+            ]
+          }
+        }
+      },
+      "StreamInfo": {
+        "type": "object",
+        "properties": {
+          "tmdbId": {
+            "type": "integer",
+            "example": 157336
+          },
+          "muxPlaybackId": {
+            "type": "string",
+            "example": "qxb01i6T202018GGSNzgwtm00hzV02M4FbdQ344Xw2bU6I"
+          },
+          "muxAssetId": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "availableRegions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "US",
+              "CA",
+              "GB"
+            ]
+          },
+          "streamUrl": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "example": "https://stream.mux.com/qxb01i6T202018GGSNzgwtm00hzV02M4FbdQ344Xw2bU6I.m3u8"
+          }
+        }
+      },
+      "WatchHistoryItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "userId": {
+            "type": "string",
+            "example": "user_2abc123def456"
+          },
+          "profileId": {
+            "type": "string",
+            "example": "user_2abc123def456"
+          },
+          "tmdbId": {
+            "type": "integer",
+            "example": 157336
+          },
+          "mediaType": {
+            "type": "string",
+            "enum": [
+              "movie",
+              "tv"
+            ],
+            "example": "movie"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true,
+            "example": "Interstellar"
+          },
+          "posterPath": {
+            "type": "string",
+            "nullable": true,
+            "example": "/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg"
+          },
+          "seasonNumber": {
+            "type": "integer",
+            "example": 0
+          },
+          "episodeNumber": {
+            "type": "integer",
+            "example": 0
+          },
+          "episodeTmdbId": {
+            "type": "integer",
+            "nullable": true,
+            "example": null
+          },
+          "progressSeconds": {
+            "type": "integer",
+            "example": 1800
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "example": 10140
+          },
+          "completed": {
+            "type": "boolean",
+            "example": false
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "muxPlaybackId": {
+            "type": "string",
+            "nullable": true,
+            "example": "qxb01i6T202018GGSNzgwtm00hzV02M4FbdQ344Xw2bU6I"
+          },
+          "device": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-18T18:10:00.000Z"
+          }
+        }
+      },
+      "SeasonEpisodeProgress": {
+        "type": "object",
+        "properties": {
+          "episodeNumber": {
+            "type": "integer",
+            "example": 1
+          },
+          "progressSeconds": {
+            "type": "integer",
+            "nullable": true,
+            "example": 1420
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "nullable": true,
+            "example": 3480
+          }
+        }
+      },
+      "MyListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "profileId": {
+            "type": "string",
+            "example": "user_2abc123def456"
+          },
+          "tmdbId": {
+            "type": "integer",
+            "example": 157336
+          },
+          "mediaType": {
+            "type": "string",
+            "enum": [
+              "movie",
+              "tv"
+            ],
+            "example": "movie"
+          },
+          "addedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-18T18:00:00.000Z"
+          }
+        }
+      },
+      "ToggleResponse": {
+        "type": "object",
+        "properties": {
+          "added": {
+            "type": "boolean",
+            "description": "True if the record was added; false if it was removed.",
+            "example": true
+          }
+        }
+      },
+      "TMDBPaginatedResponse": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "total_pages": {
+            "type": "integer",
+            "example": 10
+          },
+          "total_results": {
+            "type": "integer",
+            "example": 200
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "description": "Verifies that the Flix Backend server is running and responsive.",
+        "responses": {
+          "200": {
+            "description": "Server is healthy.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Flix Backend OK"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/sign-up/email": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register a new user with email and password",
+        "description": "Creates a new user account via Better Auth and triggers a database hook that initializes a profile record in the profiles table with default region \"US\".",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Jane Doe"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "jane.doe@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "StrongPassword123!"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "uri",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User registered and session created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "example": "tok_secret_session_token"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid registration data or email already in use."
+          }
+        }
+      }
+    },
+    "/api/auth/sign-in/email": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Sign in with email and password",
+        "description": "Authenticates an existing user and sets the better-auth.session_token cookie.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "jane.doe@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "StrongPassword123!"
+                  },
+                  "rememberMe": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "redirect": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "token": {
+                      "type": "string",
+                      "example": "tok_secret_session_token"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid email or password."
+          }
+        }
+      }
+    },
+    "/api/auth/get-session": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get active session",
+        "description": "Retrieves the active session and user object associated with the current request.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active session details, or null if unauthenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "session": {
+                      "$ref": "#/components/schemas/Session"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/sign-out": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Sign out current session",
+        "description": "Revokes the current user session and clears the session cookie.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session terminated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/movies": {
+      "get": {
+        "tags": [
+          "Movies"
+        ],
+        "summary": "List playable movies",
+        "description": "Returns all playable content entries from the database, optionally filtered by availability in a specific ISO 3166-1 alpha-2 country code.",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "description": "ISO 3166-1 alpha-2 region code (e.g., US, MX, ES).",
+            "schema": {
+              "type": "string",
+              "example": "US"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of playable content entries.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlayableContent"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/movies/{tmdbId}/playable": {
+      "get": {
+        "tags": [
+          "Movies"
+        ],
+        "summary": "Check if a title is playable in a region",
+        "description": "Checks whether a specific TMDB title ID exists in playable_content and is available in the specified region.",
+        "parameters": [
+          {
+            "name": "tmdbId",
+            "in": "path",
+            "required": true,
+            "description": "Numeric TMDB identifier.",
+            "schema": {
+              "type": "integer",
+              "example": 157336
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "description": "ISO 3166-1 alpha-2 region code (defaults to US).",
+            "schema": {
+              "type": "string",
+              "default": "US",
+              "example": "US"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Playability status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "playable": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid tmdbId parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "tmdbId must be a number"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/movies/{tmdbId}/stream": {
+      "get": {
+        "tags": [
+          "Movies"
+        ],
+        "summary": "Get Mux stream URL and playback metadata",
+        "description": "Retrieves Mux playback details and the HLS (.m3u8) streaming URL for a playable title.",
+        "parameters": [
+          {
+            "name": "tmdbId",
+            "in": "path",
+            "required": true,
+            "description": "Numeric TMDB identifier.",
+            "schema": {
+              "type": "integer",
+              "example": 157336
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream metadata and HLS playback URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid tmdbId parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "tmdbId must be a number"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No playable content found for the specified tmdbId.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "No playable content found for this tmdbId"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tmdb/search": {
+      "get": {
+        "tags": [
+          "TMDB"
+        ],
+        "summary": "Multi-search movies, TV series, and people",
+        "description": "Queries TMDB /search/multi. Returns an empty results array immediately if q is omitted or shorter than 2 characters after trimming.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Search query (minimum 2 characters).",
+            "schema": {
+              "type": "string",
+              "example": "Interstellar"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Results page number.",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "description": "Localization language tag.",
+            "schema": {
+              "type": "string",
+              "default": "en-US",
+              "example": "en-US"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated search results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TMDBPaginatedResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Upstream TMDB error or internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tmdb/trending": {
+      "get": {
+        "tags": [
+          "TMDB"
+        ],
+        "summary": "Get trending content",
+        "description": "Fetches trending movies, TV shows, or all media from TMDB for the given time window.",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "description": "Media type filter.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "movie",
+                "tv",
+                "all"
+              ],
+              "default": "all"
+            }
+          },
+          {
+            "name": "window",
+            "in": "query",
+            "required": false,
+            "description": "Trending time window.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "week"
+              ],
+              "default": "week"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "description": "Localization language tag.",
+            "schema": {
+              "type": "string",
+              "default": "en-US",
+              "example": "en-US"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated trending content list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TMDBPaginatedResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Upstream TMDB error or internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tmdb/popular": {
+      "get": {
+        "tags": [
+          "TMDB"
+        ],
+        "summary": "Get popular movies or TV shows",
+        "description": "Fetches popular movies or TV shows from TMDB filtered by region and language.",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "description": "Media type.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "movie",
+                "tv"
+              ],
+              "default": "movie"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Results page number.",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "description": "ISO 3166-1 alpha-2 country code.",
+            "schema": {
+              "type": "string",
+              "default": "US",
+              "example": "US"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "description": "Localization language tag.",
+            "schema": {
+              "type": "string",
+              "default": "en-US",
+              "example": "en-US"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated popular content list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TMDBPaginatedResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Upstream TMDB error or internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tmdb/top-rated": {
+      "get": {
+        "tags": [
+          "TMDB"
+        ],
+        "summary": "Get top-rated movies or TV shows",
+        "description": "Fetches top-rated movies or TV shows from TMDB filtered by region and language.",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "description": "Media type.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "movie",
+                "tv"
+              ],
+              "default": "movie"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Results page number.",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "description": "ISO 3166-1 alpha-2 country code.",
+            "schema": {
+              "type": "string",
+              "default": "US",
+              "example": "US"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "description": "Localization language tag.",
+            "schema": {
+              "type": "string",
+              "default": "en-US",
+              "example": "en-US"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated top-rated content list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TMDBPaginatedResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Upstream TMDB error or internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tmdb/movie/{id}": {
+      "get": {
+        "tags": [
+          "TMDB"
+        ],
+        "summary": "Get movie details",
+        "description": "Fetches full movie details from TMDB including credits, videos, watch/providers, and recommendations.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Numeric TMDB movie ID.",
+            "schema": {
+              "type": "integer",
+              "example": 157336
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "description": "Localization language tag.",
+            "schema": {
+              "type": "string",
+              "default": "en-US",
+              "example": "en-US"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TMDB movie details object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid movie ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "id must be a number"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Upstream TMDB error or internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tmdb/tv/{id}": {
+      "get": {
+        "tags": [
+          "TMDB"
+        ],
+        "summary": "Get TV series details",
+        "description": "Fetches full TV series details from TMDB including credits, videos, watch/providers, recommendations, and aggregate_credits.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Numeric TMDB TV series ID.",
+            "schema": {
+              "type": "integer",
+              "example": 1396
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "description": "Localization language tag.",
+            "schema": {
+              "type": "string",
+              "default": "en-US",
+              "example": "en-US"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TMDB TV series details object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid TV series ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "id must be a number"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Upstream TMDB error or internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tmdb/tv/{id}/season/{season}": {
+      "get": {
+        "tags": [
+          "TMDB"
+        ],
+        "summary": "Get TV season details",
+        "description": "Fetches episode list and metadata for a specific season of a TV series from TMDB.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Numeric TMDB TV series ID.",
+            "schema": {
+              "type": "integer",
+              "example": 1396
+            }
+          },
+          {
+            "name": "season",
+            "in": "path",
+            "required": true,
+            "description": "Season number.",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "description": "Localization language tag.",
+            "schema": {
+              "type": "string",
+              "default": "en-US",
+              "example": "en-US"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TMDB season details object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID or season number.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "id and season must be numbers"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Upstream TMDB error or internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tmdb/details/{tmdbId}": {
+      "get": {
+        "tags": [
+          "TMDB"
+        ],
+        "summary": "Resolve details by TMDB ID (movie or TV)",
+        "description": "Attempts to fetch movie details first, then falls back to TV series details, returning the resolved object with an added media_type field (\"movie\" or \"tv\").",
+        "parameters": [
+          {
+            "name": "tmdbId",
+            "in": "path",
+            "required": true,
+            "description": "Numeric TMDB identifier.",
+            "schema": {
+              "type": "integer",
+              "example": 157336
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "description": "Localization language tag.",
+            "schema": {
+              "type": "string",
+              "default": "en-US",
+              "example": "en-US"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved movie or TV details object with media_type.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "media_type": {
+                      "type": "string",
+                      "enum": [
+                        "movie",
+                        "tv"
+                      ],
+                      "example": "movie"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid tmdbId.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "tmdbId must be a number"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No movie or TV series found for the given tmdbId.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/profile/me": {
+      "get": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Get authenticated user profile",
+        "description": "Returns the profile record for the currently authenticated user.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authenticated user profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Profile not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/profile/region": {
+      "patch": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Update profile region",
+        "description": "Updates the geographic region code for the authenticated user profile.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "region"
+                ],
+                "properties": {
+                  "region": {
+                    "type": "string",
+                    "description": "ISO 3166-1 alpha-2 country code.",
+                    "example": "US"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid region field.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "region is required and must be a string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/profile/settings": {
+      "patch": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Update profile settings",
+        "description": "Partially updates language, maturityRating, or isKids settings on the authenticated user profile. At least one field must be provided.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "language": {
+                    "type": "string",
+                    "example": "en-US"
+                  },
+                  "maturityRating": {
+                    "type": "string",
+                    "example": "TV-MA"
+                  },
+                  "isKids": {
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No valid fields provided for update.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "No valid fields to update"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/watch-history": {
+      "get": {
+        "tags": [
+          "Watch History"
+        ],
+        "summary": "Get Continue Watching list",
+        "description": "Returns incomplete watch history entries (completed = false and progressSeconds > 0) for the authenticated user, ordered by updatedAt descending.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of records to return.",
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "example": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of in-progress watch history entries.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WatchHistoryItem"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/watch-history/update-progress": {
+      "post": {
+        "tags": [
+          "Watch History"
+        ],
+        "summary": "Upsert playback progress",
+        "description": "Inserts or updates watch progress for a movie or episode. Marks the item as completed when progressSeconds >= durationSeconds * 0.9.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tmdbId",
+                  "mediaType",
+                  "progressSeconds",
+                  "durationSeconds"
+                ],
+                "properties": {
+                  "tmdbId": {
+                    "type": "integer",
+                    "example": 157336
+                  },
+                  "mediaType": {
+                    "type": "string",
+                    "enum": [
+                      "movie",
+                      "tv"
+                    ],
+                    "example": "movie"
+                  },
+                  "progressSeconds": {
+                    "type": "integer",
+                    "example": 1800
+                  },
+                  "durationSeconds": {
+                    "type": "integer",
+                    "example": 10140
+                  },
+                  "title": {
+                    "type": "string",
+                    "example": "Interstellar"
+                  },
+                  "posterPath": {
+                    "type": "string",
+                    "example": "/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg"
+                  },
+                  "playbackId": {
+                    "type": "string",
+                    "example": "qxb01i6T202018GGSNzgwtm00hzV02M4FbdQ344Xw2bU6I"
+                  },
+                  "seasonNumber": {
+                    "type": "integer",
+                    "default": 0,
+                    "example": 0
+                  },
+                  "episodeNumber": {
+                    "type": "integer",
+                    "default": 0,
+                    "example": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Progress updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/watch-history/{tmdbId}/season/{seasonNumber}": {
+      "get": {
+        "tags": [
+          "Watch History"
+        ],
+        "summary": "Get season episode watch progress",
+        "description": "Returns playback progress for all episodes of a given TV series and season watched by the authenticated user.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tmdbId",
+            "in": "path",
+            "required": true,
+            "description": "Numeric TMDB TV series ID.",
+            "schema": {
+              "type": "integer",
+              "example": 1396
+            }
+          },
+          {
+            "name": "seasonNumber",
+            "in": "path",
+            "required": true,
+            "description": "Season number.",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of episode progress records for the specified season.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SeasonEpisodeProgress"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid tmdbId or seasonNumber.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "tmdbId and seasonNumber must be numbers"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/my-list": {
+      "get": {
+        "tags": [
+          "My List"
+        ],
+        "summary": "Get user watchlist (My List)",
+        "description": "Returns all items saved in the authenticated user personal list, ordered by addedAt.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of saved watchlist items.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyListItem"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/my-list/toggle": {
+      "post": {
+        "tags": [
+          "My List"
+        ],
+        "summary": "Toggle item in My List",
+        "description": "Adds a title to the authenticated user watchlist if not present, or removes it if already present.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tmdbId",
+                  "mediaType"
+                ],
+                "properties": {
+                  "tmdbId": {
+                    "type": "integer",
+                    "example": 157336
+                  },
+                  "mediaType": {
+                    "type": "string",
+                    "enum": [
+                      "movie",
+                      "tv"
+                    ],
+                    "example": "movie"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Toggle result indicating whether the item is now added.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToggleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "tmdbId and mediaType are required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/my-list/check": {
+      "get": {
+        "tags": [
+          "My List"
+        ],
+        "summary": "Check if a title is in My List",
+        "description": "Checks whether a specific title is saved in the authenticated user watchlist.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tmdbId",
+            "in": "query",
+            "required": true,
+            "description": "Numeric TMDB identifier.",
+            "schema": {
+              "type": "integer",
+              "example": 157336
+            }
+          },
+          {
+            "name": "mediaType",
+            "in": "query",
+            "required": true,
+            "description": "Content media type.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "movie",
+                "tv"
+              ],
+              "example": "movie"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Membership status in My List.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "inList": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid query parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "tmdbId and mediaType are required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/my-list/{itemId}": {
+      "delete": {
+        "tags": [
+          "My List"
+        ],
+        "summary": "Remove item from My List by ID",
+        "description": "Deletes a specific watchlist entry by its primary key ID if owned by the authenticated user.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "description": "Database primary key (id) of the my_list record.",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item removed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid itemId parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "itemId must be a number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item not found or not owned by user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Item not found or not owned by user"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dislikes/toggle": {
+      "post": {
+        "tags": [
+          "Dislikes"
+        ],
+        "summary": "Toggle dislike status for a title",
+        "description": "Marks a title as disliked for the authenticated user if not present, or removes the dislike if already present.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tmdbId",
+                  "mediaType"
+                ],
+                "properties": {
+                  "tmdbId": {
+                    "type": "integer",
+                    "example": 157336
+                  },
+                  "mediaType": {
+                    "type": "string",
+                    "enum": [
+                      "movie",
+                      "tv"
+                    ],
+                    "example": "movie"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Toggle result indicating whether the dislike record is now added.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToggleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "tmdbId and mediaType are required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dislikes/check": {
+      "get": {
+        "tags": [
+          "Dislikes"
+        ],
+        "summary": "Check if a title is disliked",
+        "description": "Checks whether a specific title is marked as disliked by the authenticated user.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tmdbId",
+            "in": "query",
+            "required": true,
+            "description": "Numeric TMDB identifier.",
+            "schema": {
+              "type": "integer",
+              "example": 157336
+            }
+          },
+          {
+            "name": "mediaType",
+            "in": "query",
+            "required": true,
+            "description": "Content media type.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "movie",
+                "tv"
+              ],
+              "example": "movie"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dislike status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "disliked": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid query parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "tmdbId and mediaType are required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
