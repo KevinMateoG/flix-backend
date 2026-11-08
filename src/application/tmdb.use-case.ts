@@ -1,6 +1,12 @@
 import { AppError } from "./errors/app.error.ts";
 import { normalizePage, type PaginatedResult } from "./pagination.ts";
 import { type MediaType } from "../domain/models/library-item.ts";
+import {
+  requireMediaType,
+  requireNonEmptyString,
+  requireNonNegativeInteger,
+  requirePositiveInteger,
+} from "./errors/validation.ts";
 
 export type TmdbTrendingMediaType = MediaType | "all";
 export type TmdbTimeWindow = "day" | "week";
@@ -53,6 +59,13 @@ export class TmdbUseCase {
     page?: number,
     language = "en-US",
   ): Promise<PaginatedResult> {
+    if (query !== undefined && typeof query !== "string") {
+      throw AppError.badRequest("query must be a string");
+    }
+    if (page !== undefined) {
+      requirePositiveInteger(page, "page");
+    }
+    const resolvedLanguage = requireNonEmptyString(language, "language");
     if (!query || query.trim().length < 2) {
       return { results: [] };
     }
@@ -60,7 +73,7 @@ export class TmdbUseCase {
     return this.tmdbGateway.search(
       query.trim(),
       normalizePage(page, 1),
-      language || "en-US",
+      resolvedLanguage,
     );
   }
 
@@ -69,10 +82,17 @@ export class TmdbUseCase {
     timeWindow: TmdbTimeWindow = "week",
     language = "en-US",
   ): Promise<PaginatedResult> {
+    if (mediaType !== "all") {
+      requireMediaType(mediaType);
+    }
+    if (timeWindow !== "day" && timeWindow !== "week") {
+      throw AppError.badRequest("timeWindow must be day or week");
+    }
+    const resolvedLanguage = requireNonEmptyString(language, "language");
     return this.tmdbGateway.trending(
       mediaType || "all",
       timeWindow || "week",
-      language || "en-US",
+      resolvedLanguage,
     );
   }
 
@@ -82,11 +102,17 @@ export class TmdbUseCase {
     region = "US",
     language = "en-US",
   ): Promise<PaginatedResult> {
+    const resolvedMediaType = requireMediaType(mediaType);
+    if (page !== undefined) {
+      requirePositiveInteger(page, "page");
+    }
+    const resolvedRegion = requireNonEmptyString(region, "region");
+    const resolvedLanguage = requireNonEmptyString(language, "language");
     return this.tmdbGateway.popular(
-      mediaType || "movie",
+      resolvedMediaType,
       normalizePage(page, 1),
-      region || "US",
-      language || "en-US",
+      resolvedRegion,
+      resolvedLanguage,
     );
   }
 
@@ -96,11 +122,17 @@ export class TmdbUseCase {
     region = "US",
     language = "en-US",
   ): Promise<PaginatedResult> {
+    const resolvedMediaType = requireMediaType(mediaType);
+    if (page !== undefined) {
+      requirePositiveInteger(page, "page");
+    }
+    const resolvedRegion = requireNonEmptyString(region, "region");
+    const resolvedLanguage = requireNonEmptyString(language, "language");
     return this.tmdbGateway.topRated(
-      mediaType || "movie",
+      resolvedMediaType,
       normalizePage(page, 1),
-      region || "US",
-      language || "en-US",
+      resolvedRegion,
+      resolvedLanguage,
     );
   }
 
@@ -108,20 +140,26 @@ export class TmdbUseCase {
     id: number,
     language = "en-US",
   ): Promise<TmdbEntityDetails> {
-    if (isNaN(id)) {
-      throw AppError.badRequest("id must be a number");
-    }
-    return this.tmdbGateway.movieDetails(id, language || "en-US");
+    requirePositiveInteger(id, "id");
+    const resolvedLanguage = requireNonEmptyString(language, "language");
+
+    return this.tmdbGateway.movieDetails(
+      id,
+      resolvedLanguage,
+    );
   }
 
   async getTvDetails(
     id: number,
     language = "en-US",
   ): Promise<TmdbEntityDetails> {
-    if (isNaN(id)) {
-      throw AppError.badRequest("id must be a number");
-    }
-    return this.tmdbGateway.tvDetails(id, language || "en-US");
+    requirePositiveInteger(id, "id");
+    const resolvedLanguage = requireNonEmptyString(language, "language");
+
+    return this.tmdbGateway.tvDetails(
+      id,
+      resolvedLanguage,
+    );
   }
 
   async getSeasonDetails(
@@ -129,21 +167,24 @@ export class TmdbUseCase {
     season: number,
     language = "en-US",
   ): Promise<Record<string, unknown>> {
-    if (isNaN(tvId) || isNaN(season)) {
-      throw AppError.badRequest("id and season must be numbers");
-    }
-    return this.tmdbGateway.seasonDetails(tvId, season, language || "en-US");
+    requirePositiveInteger(tvId, "id");
+    requireNonNegativeInteger(season, "season");
+    const resolvedLanguage = requireNonEmptyString(language, "language");
+
+    return this.tmdbGateway.seasonDetails(
+      tvId,
+      season,
+      resolvedLanguage,
+    );
   }
 
   async fetchTmdbDetails(
     tmdbId: number,
     language = "en-US",
   ): Promise<TmdbEntityDetails & { media_type: MediaType }> {
-    if (isNaN(tmdbId)) {
-      throw AppError.badRequest("tmdbId must be a number");
-    }
+    requirePositiveInteger(tmdbId, "tmdbId");
 
-    const resolvedLanguage = language || "en-US";
+    const resolvedLanguage = requireNonEmptyString(language, "language");
 
     try {
       const movie = await this.tmdbGateway.movieDetails(tmdbId, resolvedLanguage);
