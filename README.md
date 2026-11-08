@@ -130,6 +130,18 @@ cp .env.example .env
 npm run db:migrate
 npm run db:seed
 
+```
+### Usuarios de prueba (Seed)
+
+Tras ejecutar `npm run db:seed`, se crean las siguientes cuentas de prueba (contraseña para todas: `Flix1234!`):
+
+| Rol | Correo | Contraseña | Descripción |
+| --- | --- | --- | --- |
+| `admin` | `test1@flix.local` | `Flix1234!` | Acceso completo y mutaciones administrativas (`/admin`) |
+| `user` | `test2@flix.local` | `Flix1234!` | Usuario estándar (recibe `403 Forbidden` en rutas de admin) |
+
+```bash
+
 # 4. Iniciar en modo desarrollo (recarga automática)
 npm run dev
 ```
