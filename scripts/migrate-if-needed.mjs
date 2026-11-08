@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { spawnSync } from "node:child_process";
 import pg from "pg";
 
@@ -14,14 +13,7 @@ const tables = [
   "watch_history",
 ];
 
-const databaseUrl = process.env.DATABASE_URL ?? "";
-const isLocalDatabase =
-  databaseUrl.includes("localhost") || databaseUrl.includes("127.0.0.1");
-
-const client = new pg.Client({
-  connectionString: databaseUrl,
-  ssl: isLocalDatabase ? false : { rejectUnauthorized: false },
-});
+const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
 let existingTables = 0;
 
 try {
