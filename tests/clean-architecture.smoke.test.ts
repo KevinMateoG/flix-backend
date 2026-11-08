@@ -5,15 +5,25 @@ import { AuthUseCase, type AuthSessionPort } from "../src/application/auth.use-c
 import { CatalogUseCase } from "../src/application/catalog.use-case.ts";
 import { HistoryUseCase } from "../src/application/history.use-case.ts";
 import { LibraryUseCase } from "../src/application/library.use-case.ts";
+import { type StandardPaginatedResponse } from "../src/application/pagination.ts";
 import { PlaybackUseCase, type PlaybackStreamPort } from "../src/application/playback.use-case.ts";
 import { ProfileUseCase } from "../src/application/profile.use-case.ts";
 import { TmdbUseCase, type TmdbGatewayPort } from "../src/application/tmdb.use-case.ts";
-import { type LibraryItem, type MediaType } from "../src/domain/models/library-item.ts";
-import { type PlayableContent } from "../src/domain/models/playable-content.ts";
+import {
+  type LibraryItem,
+  type MediaType,
+  type UpdateLibraryItemInput,
+} from "../src/domain/models/library-item.ts";
+import {
+  type CreatePlayableContentInput,
+  type PlayableContent,
+  type UpdatePlayableContentInput,
+} from "../src/domain/models/playable-content.ts";
 import { type Profile, type UpdateProfileSettingsInput } from "../src/domain/models/profile.ts";
 import { type AuthSession, type User } from "../src/domain/models/user.ts";
 import {
   type SeasonEpisodeProgress,
+  type UpdateWatchHistoryInput,
   type UpsertWatchHistoryRecord,
   type WatchHistoryItem,
 } from "../src/domain/models/watch-history.ts";
@@ -108,7 +118,23 @@ class InMemoryLibraryRepository implements LibraryRepository {
   private nextId = 1;
 
   async getMyList(profileId: string): Promise<LibraryItem[]> {
-    return this.myListItems.filter((item) => item.profileId === profileId);
+    return this.myListItems.filter(
+      (item) => item.profileId === profileId && item.isActive !== false,
+    );
+  }
+
+  async findMyListItemById(
+    itemId: number,
+    profileId: string,
+  ): Promise<LibraryItem | null> {
+    return (
+      this.myListItems.find(
+        (i) =>
+          i.id === itemId &&
+          i.profileId === profileId &&
+          i.isActive !== false,
+      ) ?? null
+    );
   }
 
   async findMyListItem(
@@ -120,7 +146,8 @@ class InMemoryLibraryRepository implements LibraryRepository {
       (i) =>
         i.profileId === profileId &&
         i.tmdbId === tmdbId &&
-        i.mediaType === mediaType,
+        i.mediaType === mediaType &&
+        i.isActive !== false,
     );
     return found ? { id: found.id } : null;
   }
@@ -130,26 +157,58 @@ class InMemoryLibraryRepository implements LibraryRepository {
     tmdbId: number,
     mediaType: MediaType,
     addedAt: Date,
-  ): Promise<void> {
-    this.myListItems.push({
+  ): Promise<LibraryItem> {
+    const item: LibraryItem = {
       id: this.nextId++,
       profileId,
       tmdbId,
       mediaType,
       addedAt,
-    });
+      isActive: true,
+    };
+    this.myListItems.push(item);
+    return item;
+  }
+
+  async updateMyListItem(
+    itemId: number,
+    profileId: string,
+    input: UpdateLibraryItemInput,
+  ): Promise<LibraryItem | null> {
+    const idx = this.myListItems.findIndex(
+      (i) => i.id === itemId && i.profileId === profileId,
+    );
+    if (idx < 0) return null;
+    const updated: LibraryItem = {
+      ...this.myListItems[idx],
+      ...(input.tmdbId !== undefined ? { tmdbId: input.tmdbId } : {}),
+      ...(input.mediaType !== undefined ? { mediaType: input.mediaType } : {}),
+      ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+    };
+    this.myListItems[idx] = updated;
+    return updated;
   }
 
   async removeMyListItemById(id: number): Promise<void> {
-    this.myListItems = this.myListItems.filter((i) => i.id !== id);
+    const found = this.myListItems.find((i) => i.id === id);
+    if (found) {
+      found.isActive = false;
+    }
   }
 
-  async removeMyListItemForProfile(itemId: number, profileId: string): Promise<boolean> {
-    const before = this.myListItems.length;
-    this.myListItems = this.myListItems.filter(
-      (i) => !(i.id === itemId && i.profileId === profileId),
+  async removeMyListItemForProfile(
+    itemId: number,
+    profileId: string,
+  ): Promise<boolean> {
+    const found = this.myListItems.find(
+      (i) =>
+        i.id === itemId &&
+        i.profileId === profileId &&
+        i.isActive !== false,
     );
-    return this.myListItems.length < before;
+    if (!found) return false;
+    found.isActive = false;
+    return true;
   }
 
   async findDislikeItem(
@@ -178,6 +237,7 @@ class InMemoryLibraryRepository implements LibraryRepository {
       tmdbId,
       mediaType,
       addedAt,
+      isActive: true,
     });
   }
 
@@ -217,6 +277,7 @@ class InMemoryWatchHistoryRepository implements WatchHistoryRepository {
       completedAt: record.completedAt,
       muxPlaybackId: record.muxPlaybackId ?? null,
       device: null,
+      isActive: true,
       createdAt: record.updatedAt,
       updatedAt: record.updatedAt,
     };
@@ -236,6 +297,7 @@ class InMemoryWatchHistoryRepository implements WatchHistoryRepository {
       .filter(
         (i) =>
           i.profileId === profileId &&
+          i.isActive !== false &&
           i.completed === false &&
           (i.progressSeconds ?? 0) > 0,
       )
@@ -251,6 +313,7 @@ class InMemoryWatchHistoryRepository implements WatchHistoryRepository {
       .filter(
         (i) =>
           i.profileId === profileId &&
+          i.isActive !== false &&
           i.tmdbId === tmdbId &&
           i.seasonNumber === seasonNumber,
       )
@@ -260,27 +323,136 @@ class InMemoryWatchHistoryRepository implements WatchHistoryRepository {
         durationSeconds: i.durationSeconds,
       }));
   }
+
+  async findByIdForProfile(
+    id: number,
+    profileId: string,
+  ): Promise<WatchHistoryItem | null> {
+    return (
+      this.items.find(
+        (i) =>
+          i.id === id &&
+          i.profileId === profileId &&
+          i.isActive !== false,
+      ) ?? null
+    );
+  }
+
+  async updateByIdForProfile(
+    id: number,
+    profileId: string,
+    input: UpdateWatchHistoryInput,
+  ): Promise<WatchHistoryItem | null> {
+    const idx = this.items.findIndex(
+      (i) => i.id === id && i.profileId === profileId,
+    );
+    if (idx < 0) return null;
+    const updated: WatchHistoryItem = {
+      ...this.items[idx],
+      ...(input.progressSeconds !== undefined
+        ? { progressSeconds: input.progressSeconds }
+        : {}),
+      ...(input.durationSeconds !== undefined
+        ? { durationSeconds: input.durationSeconds }
+        : {}),
+      ...(input.title !== undefined ? { title: input.title } : {}),
+      ...(input.posterPath !== undefined
+        ? { posterPath: input.posterPath }
+        : {}),
+      ...(input.completed !== undefined ? { completed: input.completed } : {}),
+      ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+      updatedAt: new Date(),
+    };
+    this.items[idx] = updated;
+    return updated;
+  }
+
+  async softDeleteForProfile(id: number, profileId: string): Promise<boolean> {
+    const found = this.items.find(
+      (i) =>
+        i.id === id &&
+        i.profileId === profileId &&
+        i.isActive !== false,
+    );
+    if (!found) return false;
+    found.isActive = false;
+    return true;
+  }
 }
 
 class InMemoryPlayableContentRepository implements PlayableContentRepository {
   private readonly items: PlayableContent[];
 
   constructor(items: PlayableContent[]) {
-    this.items = items;
+    this.items = items.map((item) => ({
+      ...item,
+      isActive: item.isActive ?? true,
+    }));
   }
 
   async findAll(region?: string): Promise<PlayableContent[]> {
-    if (!region) return this.items;
-    return this.items.filter((i) => i.availableRegions?.includes(region));
+    const active = this.items.filter((i) => i.isActive !== false);
+    if (!region) return active;
+    return active.filter((i) => i.availableRegions?.includes(region));
   }
 
   async findByTmdbId(tmdbId: number): Promise<PlayableContent | null> {
-    return this.items.find((i) => i.tmdbId === tmdbId) ?? null;
+    return (
+      this.items.find((i) => i.tmdbId === tmdbId && i.isActive !== false) ??
+      null
+    );
   }
 
   async isPlayableInRegion(tmdbId: number, region: string): Promise<boolean> {
     const found = await this.findByTmdbId(tmdbId);
     return Boolean(found?.availableRegions?.includes(region));
+  }
+
+  async create(input: CreatePlayableContentInput): Promise<PlayableContent> {
+    const existingIdx = this.items.findIndex((i) => i.tmdbId === input.tmdbId);
+    const created: PlayableContent = {
+      tmdbId: input.tmdbId,
+      muxPlaybackId: input.muxPlaybackId,
+      muxAssetId: input.muxAssetId ?? null,
+      availableRegions: input.availableRegions ?? ["US"],
+      isActive: true,
+    };
+    if (existingIdx >= 0) {
+      this.items[existingIdx] = created;
+    } else {
+      this.items.push(created);
+    }
+    return created;
+  }
+
+  async update(
+    tmdbId: number,
+    input: UpdatePlayableContentInput,
+  ): Promise<PlayableContent | null> {
+    const idx = this.items.findIndex((i) => i.tmdbId === tmdbId);
+    if (idx < 0) return null;
+    const updated: PlayableContent = {
+      ...this.items[idx],
+      ...(input.muxPlaybackId !== undefined
+        ? { muxPlaybackId: input.muxPlaybackId }
+        : {}),
+      ...(input.muxAssetId !== undefined ? { muxAssetId: input.muxAssetId } : {}),
+      ...(input.availableRegions !== undefined
+        ? { availableRegions: input.availableRegions }
+        : {}),
+      ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+    };
+    this.items[idx] = updated;
+    return updated;
+  }
+
+  async softDelete(tmdbId: number): Promise<boolean> {
+    const found = this.items.find(
+      (i) => i.tmdbId === tmdbId && i.isActive !== false,
+    );
+    if (!found) return false;
+    found.isActive = false;
+    return true;
   }
 }
 
@@ -288,10 +460,21 @@ function createTestHarness() {
   const testUser: User = {
     id: "user_1",
     name: "Test User",
-    email: "test1@flix.local",
+    email: "test2@flix.local",
     emailVerified: true,
     image: null,
     role: "user",
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+  };
+
+  const adminUser: User = {
+    id: "admin_1",
+    name: "Admin User",
+    email: "test1@flix.local",
+    emailVerified: true,
+    image: null,
+    role: "admin",
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
   };
@@ -314,11 +497,26 @@ function createTestHarness() {
           },
         };
       }
+      if (authHeader === "Bearer admin-token") {
+        return {
+          user: adminUser,
+          session: {
+            id: "sess_admin",
+            userId: adminUser.id,
+            token: "admin-token",
+            expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+            ipAddress: "127.0.0.1",
+            userAgent: "node-test",
+          },
+        };
+      }
       return null;
     },
   };
 
-  const userRepository = new InMemoryUserRepository([testUser]);
+  const userRepository = new InMemoryUserRepository([testUser, adminUser]);
   const profileRepository = new InMemoryProfileRepository([
     {
       id: testUser.id,
@@ -341,6 +539,7 @@ function createTestHarness() {
       muxPlaybackId: "mux_interstellar_id",
       muxAssetId: "asset_1",
       availableRegions: ["US", "MX"],
+      isActive: true,
     },
   ]);
 
@@ -396,13 +595,17 @@ function createTestHarness() {
 }
 
 describe("Flix Backend Clean Architecture Contracts & Smoke Tests", () => {
-  test("Health, Auth, Profile, Library, History, Catalog, Playback, and TMDB contracts", async () => {
+  test("Health, Auth (401/403), Profile, Library CRUD, History CRUD, Paginated Catalog CRUD, Playback, and TMDB contracts", async () => {
     const { app } = createTestHarness();
     const server = app.listen(0);
     const { port } = server.address() as AddressInfo;
     const baseUrl = `http://127.0.0.1:${port}`;
     const authHeaders = {
       Authorization: "Bearer valid-token",
+      "Content-Type": "application/json",
+    };
+    const adminHeaders = {
+      Authorization: "Bearer admin-token",
       "Content-Type": "application/json",
     };
 
@@ -454,7 +657,7 @@ describe("Flix Backend Clean Architecture Contracts & Smoke Tests", () => {
       assert.equal(updatedProfile.language, "es-ES");
       assert.equal(updatedProfile.isKids, true);
 
-      // 4. Library (my-list & dislikes) contracts
+      // 4. Library (my-list & dislikes) CRUD + logical delete contracts
       const toggleAddRes = await fetch(`${baseUrl}/api/my-list/toggle`, {
         method: "POST",
         headers: authHeaders,
@@ -476,12 +679,28 @@ describe("Flix Backend Clean Architecture Contracts & Smoke Tests", () => {
       const listItems = (await listRes.json()) as LibraryItem[];
       assert.equal(listItems.length, 1);
 
+      const updateListItemRes = await fetch(
+        `${baseUrl}/api/my-list/${listItems[0].id}`,
+        {
+          method: "PATCH",
+          headers: authHeaders,
+          body: JSON.stringify({ mediaType: "tv" }),
+        },
+      );
+      assert.equal(updateListItemRes.status, 200);
+      assert.equal(((await updateListItemRes.json()) as LibraryItem).mediaType, "tv");
+
       const deleteListRes = await fetch(
         `${baseUrl}/api/my-list/${listItems[0].id}`,
         { method: "DELETE", headers: authHeaders },
       );
       assert.equal(deleteListRes.status, 200);
       assert.deepEqual(await deleteListRes.json(), { success: true });
+
+      const listAfterSoftDeleteRes = await fetch(`${baseUrl}/api/my-list`, {
+        headers: authHeaders,
+      });
+      assert.equal(((await listAfterSoftDeleteRes.json()) as LibraryItem[]).length, 0);
 
       const dislikeToggleRes = await fetch(`${baseUrl}/api/dislikes/toggle`, {
         method: "POST",
@@ -498,7 +717,7 @@ describe("Flix Backend Clean Architecture Contracts & Smoke Tests", () => {
       assert.equal(dislikeCheckRes.status, 200);
       assert.deepEqual(await dislikeCheckRes.json(), { disliked: true });
 
-      // 5. Watch History contracts + 90% completion rule
+      // 5. Watch History CRUD + 90% completion rule + logical delete
       const progressRes = await fetch(
         `${baseUrl}/api/watch-history/update-progress`,
         {
@@ -523,6 +742,20 @@ describe("Flix Backend Clean Architecture Contracts & Smoke Tests", () => {
       assert.equal(continueItems.length, 1);
       assert.equal(continueItems[0].completed, false);
 
+      const patchHistoryRes = await fetch(
+        `${baseUrl}/api/watch-history/${continueItems[0].id}`,
+        {
+          method: "PATCH",
+          headers: authHeaders,
+          body: JSON.stringify({ title: "Interstellar (IMAX)" }),
+        },
+      );
+      assert.equal(patchHistoryRes.status, 200);
+      assert.equal(
+        ((await patchHistoryRes.json()) as WatchHistoryItem).title,
+        "Interstellar (IMAX)",
+      );
+
       // Update to >= 90% (900 / 1000) -> completed: true -> excluded from continue watching
       await fetch(`${baseUrl}/api/watch-history/update-progress`, {
         method: "POST",
@@ -540,10 +773,86 @@ describe("Flix Backend Clean Architecture Contracts & Smoke Tests", () => {
       });
       assert.equal(((await afterCompleteRes.json()) as WatchHistoryItem[]).length, 0);
 
-      // 6. Catalog & Playback contracts
-      const moviesRes = await fetch(`${baseUrl}/api/movies?region=US`);
+      // Soft delete watch history item
+      const deleteHistoryRes = await fetch(
+        `${baseUrl}/api/watch-history/${continueItems[0].id}`,
+        { method: "DELETE", headers: authHeaders },
+      );
+      assert.equal(deleteHistoryRes.status, 200);
+      assert.deepEqual(await deleteHistoryRes.json(), { success: true });
+
+      // 6. Catalog Pagination, Role Protection (403), CRUD & Playback contracts
+      const moviesRes = await fetch(`${baseUrl}/api/movies?region=US&page=1&limit=10`);
       assert.equal(moviesRes.status, 200);
-      assert.equal(((await moviesRes.json()) as PlayableContent[]).length, 1);
+      const moviesPage =
+        (await moviesRes.json()) as StandardPaginatedResponse<PlayableContent>;
+      assert.equal(moviesPage.data.length, 1);
+      assert.deepEqual(moviesPage.pagination, {
+        total: 1,
+        currentPage: 1,
+        limit: 10,
+        totalPages: 1,
+      });
+
+      const invalidPageRes = await fetch(`${baseUrl}/api/movies?page=0&limit=10`);
+      assert.equal(invalidPageRes.status, 400);
+
+      // Role guard: user gets 403 Forbidden on admin mutation
+      const forbiddenMovieCreateRes = await fetch(`${baseUrl}/api/movies`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          tmdbId: 27205,
+          muxPlaybackId: "mux_inception_id",
+          availableRegions: ["US"],
+        }),
+      });
+      assert.equal(forbiddenMovieCreateRes.status, 403);
+      assert.deepEqual(await forbiddenMovieCreateRes.json(), {
+        error: "Forbidden",
+      });
+
+      // Admin can create, update, and soft-delete playable content
+      const adminCreateMovieRes = await fetch(`${baseUrl}/api/movies`, {
+        method: "POST",
+        headers: adminHeaders,
+        body: JSON.stringify({
+          tmdbId: 27205,
+          muxPlaybackId: "mux_inception_id",
+          availableRegions: ["US", "CO"],
+        }),
+      });
+      assert.equal(adminCreateMovieRes.status, 201);
+
+      const adminUpdateMovieRes = await fetch(`${baseUrl}/api/movies/27205`, {
+        method: "PATCH",
+        headers: adminHeaders,
+        body: JSON.stringify({ muxPlaybackId: "mux_inception_updated" }),
+      });
+      assert.equal(adminUpdateMovieRes.status, 200);
+      assert.equal(
+        ((await adminUpdateMovieRes.json()) as PlayableContent).muxPlaybackId,
+        "mux_inception_updated",
+      );
+
+      const searchMoviesRes = await fetch(
+        `${baseUrl}/api/movies?search=inception&page=1&limit=10`,
+      );
+      assert.equal(searchMoviesRes.status, 200);
+      const searchPage =
+        (await searchMoviesRes.json()) as StandardPaginatedResponse<PlayableContent>;
+      assert.equal(searchPage.data.length, 1);
+      assert.equal(searchPage.data[0].tmdbId, 27205);
+
+      const adminDeleteMovieRes = await fetch(`${baseUrl}/api/movies/27205`, {
+        method: "DELETE",
+        headers: adminHeaders,
+      });
+      assert.equal(adminDeleteMovieRes.status, 200);
+      assert.deepEqual(await adminDeleteMovieRes.json(), { success: true });
+
+      const deletedMovieGetRes = await fetch(`${baseUrl}/api/movies/27205`);
+      assert.equal(deletedMovieGetRes.status, 404);
 
       const playableRes = await fetch(
         `${baseUrl}/api/movies/157336/playable?region=BR`,
