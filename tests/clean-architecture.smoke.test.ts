@@ -63,6 +63,7 @@ class InMemoryProfileRepository implements ProfileRepository {
       id: userId,
       displayName,
       avatarUrl: null,
+      avatarPath: null,
       plan: "standard",
       memberSince: new Date("2026-01-01T00:00:00.000Z"),
       region,
@@ -79,6 +80,21 @@ class InMemoryProfileRepository implements ProfileRepository {
     const existing = this.profiles.get(userId);
     if (!existing) return null;
     const updated = { ...existing, region };
+    this.profiles.set(userId, updated);
+    return updated;
+  }
+
+  async updateAvatar(
+    userId: string,
+    avatar: { url: string; path: string } | null,
+  ): Promise<Profile | null> {
+    const existing = this.profiles.get(userId);
+    if (!existing) return null;
+    const updated: Profile = {
+      ...existing,
+      avatarUrl: avatar?.url ?? null,
+      avatarPath: avatar?.path ?? null,
+    };
     this.profiles.set(userId, updated);
     return updated;
   }
@@ -323,6 +339,7 @@ function createTestHarness() {
       id: testUser.id,
       displayName: testUser.name,
       avatarUrl: null,
+      avatarPath: null,
       plan: "standard",
       memberSince: new Date("2026-01-01T00:00:00.000Z"),
       region: "US",
@@ -380,7 +397,10 @@ function createTestHarness() {
       res.json({ ok: true });
     },
     authUseCase: new AuthUseCase(sessionPort, userRepository, profileRepository),
-    profileUseCase: new ProfileUseCase(profileRepository),
+    profileUseCase: new ProfileUseCase(profileRepository, {
+      upload: async (file) => ({ path: file.key, url: `https://cdn.test/${file.key}` }),
+      remove: async () => undefined,
+    }),
     libraryUseCase: new LibraryUseCase(libraryRepository),
     historyUseCase: new HistoryUseCase(watchHistoryRepository),
     catalogUseCase: new CatalogUseCase(playableContentRepository),
