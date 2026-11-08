@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { hashPassword } from "better-auth/crypto";
