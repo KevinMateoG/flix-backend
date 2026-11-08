@@ -26,7 +26,14 @@ const users = [
 ];
 
 const password = "Flix1234!";
-const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+const databaseUrl = process.env.DATABASE_URL ?? "";
+const isLocalDatabase =
+  databaseUrl.includes("localhost") || databaseUrl.includes("127.0.0.1");
+
+const client = new pg.Client({
+  connectionString: databaseUrl,
+  ssl: isLocalDatabase ? false : { rejectUnauthorized: false },
+});
 
 function parseCsvLine(line) {
   const values = [];
