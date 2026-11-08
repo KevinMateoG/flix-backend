@@ -4,10 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test tests/**/*.test.ts",
     "dev": "nodemon --exec npx tsx src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/src/index.js",
+    "db:migrate": "node scripts/migrate-if-needed.mjs",
+    "db:seed": "node scripts/seed-data.mjs"
   },
   "repository": {
     "type": "git",
