@@ -44,6 +44,39 @@ export class ProfileController {
     }
   };
 
+  uploadAvatar = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const file = req.file
+        ? {
+            buffer: req.file.buffer,
+            mimeType: req.file.mimetype,
+            size: req.file.size,
+          }
+        : undefined;
+      const updated = await this.profileUseCase.uploadAvatar(req.userId, file);
+      res.json(toProfileResponseDto(updated));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteAvatar = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const updated = await this.profileUseCase.deleteAvatar(req.userId);
+      res.json(toProfileResponseDto(updated));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   updateSettings = async (
     req: Request,
     res: Response,
