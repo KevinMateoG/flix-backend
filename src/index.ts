@@ -1,52 +1,43 @@
-import "dotenv/config";
-import { AuthUseCase } from "./application/auth.use-case.ts";
-import { CatalogUseCase } from "./application/catalog.use-case.ts";
-import { HistoryUseCase } from "./application/history.use-case.ts";
-import { LibraryUseCase } from "./application/library.use-case.ts";
-import { PlaybackUseCase } from "./application/playback.use-case.ts";
-import { ProfileUseCase } from "./application/profile.use-case.ts";
-import { TmdbUseCase } from "./application/tmdb.use-case.ts";
-import {
-  authHandler,
-  BetterAuthSessionAdapter,
-} from "./infrastructure/auth/better-auth.ts";
-import { DrizzleLibraryRepository } from "./infrastructure/repository/drizzle-library.repository.ts";
-import { DrizzlePlayableContentRepository } from "./infrastructure/repository/drizzle-playable-content.repository.ts";
-import { DrizzleProfileRepository } from "./infrastructure/repository/drizzle-profile.repository.ts";
-import { DrizzleUserRepository } from "./infrastructure/repository/drizzle-user.repository.ts";
-import { DrizzleWatchHistoryRepository } from "./infrastructure/repository/drizzle-watch-history.repository.ts";
-import { muxService } from "./infrastructure/services/mux.service.ts";
-import { tmdbService } from "./infrastructure/services/tmdb.service.ts";
-import { createApp } from "./interface/routers/app.router.ts";
+import express, { type Express, type Request, type Response } from 'express';
+import 'dotenv/config';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './lib/auth.ts';
+import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
+import { openApiSpec } from './lib/swagger.ts';
+import moviesRouter from './routes/movies.route.ts';
+import tmdbRouter from './routes/tmdb.route.ts';
+import profileRouter from './routes/profile.route.ts';
+import watchHistoryRouter from './routes/watch-history.route.ts';
+import myListRouter from './routes/my-list.route.ts';
+import dislikesRouter from './routes/dislikes.route.ts';
 
-const userRepository = new DrizzleUserRepository();
-const profileRepository = new DrizzleProfileRepository();
-const playableContentRepository = new DrizzlePlayableContentRepository();
-const libraryRepository = new DrizzleLibraryRepository();
-const watchHistoryRepository = new DrizzleWatchHistoryRepository();
-const sessionAdapter = new BetterAuthSessionAdapter();
-
-export const app = createApp({
-  authHandler,
-  authUseCase: new AuthUseCase(
-    sessionAdapter,
-    userRepository,
-    profileRepository,
-  ),
-  profileUseCase: new ProfileUseCase(profileRepository),
-  libraryUseCase: new LibraryUseCase(libraryRepository),
-  historyUseCase: new HistoryUseCase(watchHistoryRepository),
-  catalogUseCase: new CatalogUseCase(playableContentRepository),
-  playbackUseCase: new PlaybackUseCase(playableContentRepository, muxService),
-  tmdbUseCase: new TmdbUseCase(tmdbService),
-});
-
+const app: Express = express();
 const PORT = process.env.PORT || 3000;
 
-if (!process.env.VERCEL && process.env.NODE_ENV !== "test") {
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}
+app.use(cors({ origin: process.env.FRONTEND_URL || '*', credentials: true }));
 
-export default app;
+app.use('/api/auth', toNodeHandler(auth));
+
+app.use(express.json());
+
+app.get('/', (req: Request, res: Response) => {
+  res.send('Flix Backend OK');
+});
+
+app.get('/api-docs.json', (req: Request, res: Response) => {
+  res.json(openApiSpec);
+});
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
+
+app.use('/api/movies', moviesRouter);
+app.use('/api/tmdb', tmdbRouter);
+app.use('/api/profile', profileRouter);
+app.use('/api/watch-history', watchHistoryRouter);
+app.use('/api/my-list', myListRouter);
+app.use('/api/dislikes', dislikesRouter);
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});

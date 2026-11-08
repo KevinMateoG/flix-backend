@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { hashPassword } from "better-auth/crypto";
@@ -27,14 +26,7 @@ const users = [
 ];
 
 const password = "Flix1234!";
-const databaseUrl = process.env.DATABASE_URL ?? "";
-const isLocalDatabase =
-  databaseUrl.includes("localhost") || databaseUrl.includes("127.0.0.1");
-
-const client = new pg.Client({
-  connectionString: databaseUrl,
-  ssl: isLocalDatabase ? false : { rejectUnauthorized: false },
-});
+const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
 
 function parseCsvLine(line) {
   const values = [];
