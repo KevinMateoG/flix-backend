@@ -1145,6 +1145,128 @@ export const openApiSpec = {
         },
       },
     },
+    '/static/default-avatar.svg': {
+      get: {
+        tags: ['Profile'],
+        summary: 'Default avatar image',
+        description:
+          'Gray anonymous-user placeholder. Returned as avatarUrl by the profile endpoints when the user has no uploaded avatar.',
+        responses: {
+          '200': {
+            description: 'SVG image.',
+            content: { 'image/svg+xml': { schema: { type: 'string', format: 'binary' } } },
+          },
+        },
+      },
+    },
+    '/api/profile/avatar': {
+      post: {
+        tags: ['Profile'],
+        summary: 'Upload avatar',
+        description:
+          'Uploads an image file (multipart/form-data, field "avatar") to the Neon Object Storage bucket and saves the resulting URL in the profile. If an avatar already exists it is replaced and the old file is deleted. Accepts JPEG, PNG or WebP up to 2MB. Tip: sign in via /api/auth/sign-in/email first; in Swagger UI the session cookie is sent automatically.',
+        security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                required: ['avatar'],
+                properties: {
+                  avatar: { type: 'string', format: 'binary', description: 'JPEG, PNG or WebP image, max 2MB.' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Updated profile with the new avatarUrl.',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Profile' } } },
+          },
+          '400': {
+            description: 'Missing file, unsupported type, or content does not match its type.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                example: { error: 'avatar must be a JPEG, PNG or WebP image' },
+              },
+            },
+          },
+          '401': {
+            description: 'Unauthorized.',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { error: 'Unauthorized' } } },
+          },
+          '413': {
+            description: 'File larger than 2MB.',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }, example: { error: 'avatar must be 2MB or smaller' } } },
+          },
+          '500': {
+            description: 'Internal server error.',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+          },
+        },
+      },
+      put: {
+        tags: ['Profile'],
+        summary: 'Replace avatar',
+        description: 'Same behavior as POST: stores the new image, updates the URL in the profile and deletes the previous file.',
+        security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                required: ['avatar'],
+                properties: {
+                  avatar: { type: 'string', format: 'binary', description: 'JPEG, PNG or WebP image, max 2MB.' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Updated profile with the new avatarUrl.',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Profile' } } },
+          },
+          '400': {
+            description: 'Invalid file.',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+          },
+          '401': {
+            description: 'Unauthorized.',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+          },
+          '413': {
+            description: 'File larger than 2MB.',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+          },
+        },
+      },
+      delete: {
+        tags: ['Profile'],
+        summary: 'Delete avatar',
+        description: 'Removes the file from the bucket and clears the avatar in the profile. avatarUrl then falls back to the default gray avatar.',
+        security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Profile with the default avatarUrl.',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Profile' } } },
+          },
+          '401': {
+            description: 'Unauthorized.',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+          },
+          '404': {
+            description: 'Profile not found.',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+          },
+        },
+      },
+    },
     '/api/watch-history': {
       get: {
         tags: ['Watch History'],
