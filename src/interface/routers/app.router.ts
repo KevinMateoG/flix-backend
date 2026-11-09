@@ -6,6 +6,7 @@ import express, {
 } from "express";
 import cors from "cors";
 import swaggerUi from "swagger-ui-express";
+import { type AdminUseCase } from "../../application/admin.use-case.ts";
 import { type AuthUseCase } from "../../application/auth.use-case.ts";
 import { type CatalogUseCase } from "../../application/catalog.use-case.ts";
 import { type HistoryUseCase } from "../../application/history.use-case.ts";
@@ -13,6 +14,7 @@ import { type LibraryUseCase } from "../../application/library.use-case.ts";
 import { type PlaybackUseCase } from "../../application/playback.use-case.ts";
 import { type ProfileUseCase } from "../../application/profile.use-case.ts";
 import { type TmdbUseCase } from "../../application/tmdb.use-case.ts";
+import { AdminController } from "../controllers/admin.controller.ts";
 import { CatalogController } from "../controllers/catalog.controller.ts";
 import {
   DEFAULT_AVATAR_PATH,
@@ -25,6 +27,7 @@ import { ProfileController } from "../controllers/profile.controller.ts";
 import { TmdbController } from "../controllers/tmdb.controller.ts";
 import { createAuthMiddleware } from "../middlewares/auth.middleware.ts";
 import { errorMiddleware } from "../middlewares/error.middleware.ts";
+import { createAdminRouter } from "./admin.router.ts";
 import { createDislikesRouter } from "./dislikes.router.ts";
 import { createMoviesRouter } from "./movies.router.ts";
 import { createMyListRouter } from "./my-list.router.ts";
@@ -42,13 +45,13 @@ export interface AppDependencies {
   catalogUseCase: CatalogUseCase;
   playbackUseCase: PlaybackUseCase;
   tmdbUseCase: TmdbUseCase;
+  adminUseCase?: AdminUseCase;
 }
 
 export function createApp(
   deps: AppDependencies,
   app: Express = express(),
 ): Express {
-
   const authMiddleware = createAuthMiddleware(deps.authUseCase);
   const profileController = new ProfileController(deps.profileUseCase);
   const libraryController = new LibraryController(deps.libraryUseCase);
@@ -122,6 +125,14 @@ export function createApp(
     "/api/dislikes",
     createDislikesRouter(libraryController, authMiddleware),
   );
+
+  if (deps.adminUseCase) {
+    const adminController = new AdminController(deps.adminUseCase);
+    app.use(
+      "/api/admin",
+      createAdminRouter(adminController, catalogController, authMiddleware),
+    );
+  }
 
   app.use(errorMiddleware);
 

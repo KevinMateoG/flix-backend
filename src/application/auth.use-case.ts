@@ -6,7 +6,9 @@ import { type UserRepository } from "../domain/repository/user.repository.ts";
 import { requireNonEmptyString } from "./errors/validation.ts";
 
 export interface AuthSessionPort {
-  getSession(headers: Record<string, string | string[] | undefined>): Promise<AuthSession | null>;
+  getSession(
+    headers: Record<string, string | string[] | undefined>,
+  ): Promise<AuthSession | null>;
 }
 
 export class AuthUseCase {
@@ -31,6 +33,21 @@ export class AuthUseCase {
     if (!session) {
       throw AppError.unauthorized("Unauthorized");
     }
+
+    if (session.user.isActive === false) {
+      throw AppError.forbidden("Account is deactivated");
+    }
+
+    const storedUser = await this.userRepository.findById(session.user.id);
+    if (storedUser && storedUser.isActive === false) {
+      throw AppError.forbidden("Account is deactivated");
+    }
+
+    if (storedUser) {
+      session.user.role = storedUser.role;
+      session.user.isActive = storedUser.isActive ?? true;
+    }
+
     return session;
   }
 

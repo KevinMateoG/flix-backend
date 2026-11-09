@@ -17,15 +17,48 @@ export class CatalogController {
     try {
       const region = req.query.region as string | undefined;
       const search = req.query.search as string | undefined;
+      const status = req.query.status as string | undefined;
       const page = req.query.page;
       const limit = req.query.limit;
 
-      const result = await this.catalogUseCase.getMovies({
-        region,
-        search,
-        page,
-        limit,
-      });
+      const result = await this.catalogUseCase.getMovies(
+        {
+          region,
+          search,
+          status,
+          page,
+          limit,
+        },
+        "active",
+      );
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getAdminMovies = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const region = req.query.region as string | undefined;
+      const search = req.query.search as string | undefined;
+      const status = req.query.status as string | undefined;
+      const page = req.query.page;
+      const limit = req.query.limit;
+
+      const result = await this.catalogUseCase.getMovies(
+        {
+          region,
+          search,
+          status,
+          page,
+          limit,
+        },
+        "all",
+      );
       res.json(result);
     } catch (error) {
       next(error);
