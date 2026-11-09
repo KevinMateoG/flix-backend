@@ -6,6 +6,13 @@ export interface LibraryItem {
   tmdbId: number;
   mediaType: string;
   addedAt: Date | null;
+  isActive?: boolean;
+}
+
+export interface UpdateLibraryItemInput {
+  tmdbId?: number;
+  mediaType?: MediaType;
+  isActive?: boolean;
 }
 
 export interface ToggleResult {

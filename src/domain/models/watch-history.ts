@@ -17,6 +17,7 @@ export interface WatchHistoryItem {
   completedAt: Date | null;
   muxPlaybackId: string | null;
   device: string | null;
+  isActive?: boolean;
   createdAt: Date | null;
   updatedAt: Date | null;
 }
@@ -56,4 +57,13 @@ export interface SeasonEpisodeProgress {
   episodeNumber: number;
   progressSeconds: number | null;
   durationSeconds: number | null;
+}
+
+export interface UpdateWatchHistoryInput {
+  progressSeconds?: number;
+  durationSeconds?: number;
+  title?: string;
+  posterPath?: string;
+  completed?: boolean;
+  isActive?: boolean;
 }

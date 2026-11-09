@@ -80,7 +80,7 @@ export function createApp(deps: AppDependencies): Express {
 
   app.use(
     "/api/movies",
-    createMoviesRouter(catalogController, playbackController),
+    createMoviesRouter(catalogController, playbackController, authMiddleware),
   );
   app.use("/api/tmdb", createTmdbRouter(tmdbController));
   app.use(

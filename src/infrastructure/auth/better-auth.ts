@@ -30,6 +30,15 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        defaultValue: "user",
+        input: false,
+      },
+    },
+  },
   databaseHooks: {
     user: {
       create: {
@@ -62,6 +71,7 @@ export class BetterAuthSessionAdapter implements AuthSessionPort {
         email: session.user.email,
         emailVerified: session.user.emailVerified,
         image: session.user.image ?? null,
+        role: session.user.role === "admin" ? "admin" : "user",
         createdAt: session.user.createdAt,
         updatedAt: session.user.updatedAt,
       },

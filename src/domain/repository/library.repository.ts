@@ -1,7 +1,15 @@
-import { type LibraryItem, type MediaType } from "../models/library-item.ts";
+import {
+  type LibraryItem,
+  type MediaType,
+  type UpdateLibraryItemInput,
+} from "../models/library-item.ts";
 
 export interface LibraryRepository {
   getMyList(profileId: string): Promise<LibraryItem[]>;
+  findMyListItemById(
+    itemId: number,
+    profileId: string,
+  ): Promise<LibraryItem | null>;
   findMyListItem(
     profileId: string,
     tmdbId: number,
@@ -12,7 +20,12 @@ export interface LibraryRepository {
     tmdbId: number,
     mediaType: MediaType,
     addedAt: Date,
-  ): Promise<void>;
+  ): Promise<LibraryItem>;
+  updateMyListItem(
+    itemId: number,
+    profileId: string,
+    input: UpdateLibraryItemInput,
+  ): Promise<LibraryItem | null>;
   removeMyListItemById(id: number): Promise<void>;
   removeMyListItemForProfile(
     itemId: number,

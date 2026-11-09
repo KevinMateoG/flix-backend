@@ -2,6 +2,7 @@ import { AppError } from "./errors/app.error.ts";
 import { normalizeLimit } from "./pagination.ts";
 import {
   type SeasonEpisodeProgress,
+  type UpdateWatchHistoryInput,
   type WatchHistoryItem,
   type WatchProgressInput,
 } from "../domain/models/watch-history.ts";
@@ -36,7 +37,11 @@ export class HistoryUseCase {
       data.durationSeconds,
       "durationSeconds",
     );
-    if (progressSeconds < 0 || durationSeconds <= 0 || progressSeconds > durationSeconds) {
+    if (
+      progressSeconds < 0 ||
+      durationSeconds <= 0 ||
+      progressSeconds > durationSeconds
+    ) {
       throw AppError.badRequest(
         "progressSeconds must be between 0 and durationSeconds",
       );
@@ -109,5 +114,102 @@ export class HistoryUseCase {
       tmdbId,
       seasonNumber,
     );
+  }
+
+  async getHistoryItemById(
+    profileId: string,
+    id: number,
+  ): Promise<WatchHistoryItem> {
+    const validProfileId = requireNonEmptyString(profileId, "profileId");
+    requirePositiveInteger(id, "id");
+
+    const found = await this.watchHistoryRepository.findByIdForProfile(
+      id,
+      validProfileId,
+    );
+    if (!found) {
+      throw AppError.notFound("Watch history item not found");
+    }
+    return found;
+  }
+
+  async updateHistoryItem(
+    profileId: string,
+    id: number,
+    input: UpdateWatchHistoryInput,
+  ): Promise<WatchHistoryItem> {
+    const validProfileId = requireNonEmptyString(profileId, "profileId");
+    requirePositiveInteger(id, "id");
+
+    const updates: UpdateWatchHistoryInput = {};
+    if (input.progressSeconds !== undefined) {
+      const p = requireFiniteNumber(input.progressSeconds, "progressSeconds");
+      if (p < 0) {
+        throw AppError.badRequest("progressSeconds must be >= 0");
+      }
+      updates.progressSeconds = p;
+    }
+    if (input.durationSeconds !== undefined) {
+      const d = requireFiniteNumber(input.durationSeconds, "durationSeconds");
+      if (d <= 0) {
+        throw AppError.badRequest("durationSeconds must be > 0");
+      }
+      updates.durationSeconds = d;
+    }
+    if (input.title !== undefined) {
+      if (typeof input.title !== "string") {
+        throw AppError.badRequest("title must be a string");
+      }
+      updates.title = input.title;
+    }
+    if (input.posterPath !== undefined) {
+      if (typeof input.posterPath !== "string") {
+        throw AppError.badRequest("posterPath must be a string");
+      }
+      updates.posterPath = input.posterPath;
+    }
+    if (input.completed !== undefined) {
+      if (typeof input.completed !== "boolean") {
+        throw AppError.badRequest("completed must be a boolean");
+      }
+      updates.completed = input.completed;
+    }
+    if (input.isActive !== undefined) {
+      if (typeof input.isActive !== "boolean") {
+        throw AppError.badRequest("isActive must be a boolean");
+      }
+      updates.isActive = input.isActive;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      throw AppError.badRequest("No valid fields to update");
+    }
+
+    const updated = await this.watchHistoryRepository.updateByIdForProfile(
+      id,
+      validProfileId,
+      updates,
+    );
+    if (!updated) {
+      throw AppError.notFound("Watch history item not found");
+    }
+    return updated;
+  }
+
+  async deleteHistoryItem(
+    profileId: string,
+    id: number,
+  ): Promise<{ success: boolean }> {
+    const validProfileId = requireNonEmptyString(profileId, "profileId");
+    requirePositiveInteger(id, "id");
+
+    const deleted = await this.watchHistoryRepository.softDeleteForProfile(
+      id,
+      validProfileId,
+    );
+    if (!deleted) {
+      throw AppError.notFound("Watch history item not found");
+    }
+    return { success: true };
   }
 }

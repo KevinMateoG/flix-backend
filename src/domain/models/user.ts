@@ -1,9 +1,12 @@
+export type UserRole = "admin" | "user";
+
 export interface User {
   id: string;
   name: string;
   email: string;
   emailVerified: boolean;
   image: string | null;
+  role: UserRole;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -9,8 +9,12 @@ export function createMyListRouter(
 
   router.use(authMiddleware);
   router.get("/", libraryController.getMyList);
-  router.post("/toggle", libraryController.toggleMyList);
   router.get("/check", libraryController.checkMyList);
+  router.get("/:itemId", libraryController.getMyListItemById);
+  router.post("/", libraryController.createMyListItem);
+  router.post("/toggle", libraryController.toggleMyList);
+  router.patch("/:itemId", libraryController.updateMyListItem);
+  router.put("/:itemId", libraryController.updateMyListItem);
   router.delete("/:itemId", libraryController.removeFromMyList);
 
   return router;

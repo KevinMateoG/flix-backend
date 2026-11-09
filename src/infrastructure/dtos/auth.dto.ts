@@ -1,4 +1,4 @@
-import { type AuthSession, type Session, type User } from "../../domain/models/user.ts";
+import { type AuthSession, type Session, type User, type UserRole} from "../../domain/models/user.ts";
 
 export interface UserDto {
   id: string;
@@ -6,6 +6,7 @@ export interface UserDto {
   email: string;
   emailVerified: boolean;
   image: string | null;
+  role: UserRole;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +34,7 @@ export function toUserDto(user: User): UserDto {
     email: user.email,
     emailVerified: user.emailVerified,
     image: user.image,
+    role: user.role,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

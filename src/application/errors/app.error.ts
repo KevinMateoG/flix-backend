@@ -6,6 +6,10 @@ export class AppError extends Error {
     this.name = "AppError";
     this.statusCode = statusCode;
   }
+  
+  static forbidden(message = "Forbidden"): AppError {
+    return new AppError(message, 403);
+  }
 
   static badRequest(message: string): AppError {
     return new AppError(message, 400);

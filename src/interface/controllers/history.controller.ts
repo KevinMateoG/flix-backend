@@ -1,5 +1,6 @@
 import { type NextFunction, type Request, type Response } from "express";
 import { type HistoryUseCase } from "../../application/history.use-case.ts";
+import { type UpdateWatchHistoryInput } from "../../domain/models/watch-history.ts";
 import {
   toWatchProgressInput,
   type UpdateWatchProgressRequestDto,
@@ -59,6 +60,56 @@ export class HistoryController {
         seasonNumber,
       );
       res.json(data);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getHistoryItemById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const id = Number(req.params.id);
+      const item = await this.historyUseCase.getHistoryItemById(req.userId, id);
+      res.json(item);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateHistoryItem = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const id = Number(req.params.id);
+      const body = (req.body ?? {}) as UpdateWatchHistoryInput;
+      const updated = await this.historyUseCase.updateHistoryItem(
+        req.userId,
+        id,
+        body,
+      );
+      res.json(updated);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteHistoryItem = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const id = Number(req.params.id);
+      const result = await this.historyUseCase.deleteHistoryItem(
+        req.userId,
+        id,
+      );
+      res.json(result);
     } catch (error) {
       next(error);
     }
