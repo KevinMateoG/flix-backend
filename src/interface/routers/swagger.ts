@@ -45,6 +45,10 @@ export const openApiSpec = {
       name: 'Dislikes',
       description: 'Authenticated user disliked content management.',
     },
+    {
+      name: 'Admin',
+      description: 'Role-protected administrative endpoints (role = admin) for user and catalog management.',
+    },
   ],
   components: {
     securitySchemes: {
@@ -1797,6 +1801,113 @@ export const openApiSpec = {
               },
             },
           },
+        },
+      },
+    },
+    '/api/admin/ping': {
+      get: {
+        tags: ['Admin'],
+        summary: 'Verify admin session and permissions',
+        security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Admin access confirmed.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean', example: true },
+                    role: { type: 'string', example: 'admin' },
+                  },
+                },
+              },
+            },
+          },
+          '401': {
+            description: 'Unauthorized.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          '403': {
+            description: 'Forbidden: user does not hold admin role.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/admin/users': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List all users and profiles (paginated)',
+        security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
+          { name: 'search', in: 'query', schema: { type: 'string' } },
+          { name: 'role', in: 'query', schema: { type: 'string', enum: ['admin', 'user', 'all'] } },
+          { name: 'status', in: 'query', schema: { type: 'string', enum: ['active', 'inactive', 'all'] } },
+        ],
+        responses: {
+          '200': { description: 'Paginated list of users and profiles.' },
+          '401': { description: 'Unauthorized.' },
+          '403': { description: 'Forbidden.' },
+        },
+      },
+    },
+    '/api/admin/users/{id}': {
+      patch: {
+        tags: ['Admin'],
+        summary: 'Update user and profile attributes (role, name, email, region, plan, status)',
+        security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          '200': { description: 'Updated user and profile record.' },
+          '400': { description: 'Validation error or self-lockout attempt.' },
+          '403': { description: 'Forbidden.' },
+          '404': { description: 'User not found.' },
+        },
+      },
+      delete: {
+        tags: ['Admin'],
+        summary: 'Logically delete (deactivate) a user account and revoke sessions',
+        security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          '200': { description: 'User logically deactivated.' },
+          '400': { description: 'Cannot deactivate own account.' },
+          '403': { description: 'Forbidden.' },
+          '404': { description: 'User not found.' },
+        },
+      },
+    },
+    '/api/admin/movies': {
+      get: {
+        tags: ['Admin'],
+        summary: 'List all playable content including active and inactive items (paginated)',
+        security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
+          { name: 'region', in: 'query', schema: { type: 'string' } },
+          { name: 'search', in: 'query', schema: { type: 'string' } },
+          { name: 'status', in: 'query', schema: { type: 'string', enum: ['active', 'inactive', 'all'] } },
+        ],
+        responses: {
+          '200': { description: 'Paginated list of playable catalog entries.' },
+          '401': { description: 'Unauthorized.' },
+          '403': { description: 'Forbidden.' },
         },
       },
     },
