@@ -3,6 +3,7 @@ import {
   type PlayableContent,
   type UpdatePlayableContentInput,
 } from "../domain/models/playable-content.ts";
+import { type EntityStatusFilter } from "../domain/models/user.ts";
 import { type PlayableContentRepository } from "../domain/repository/playable-content.repository.ts";
 import { AppError } from "./errors/app.error.ts";
 import {
@@ -18,8 +19,20 @@ import {
 export interface GetCatalogMoviesOptions {
   region?: string;
   search?: string;
+  status?: string;
   page?: unknown;
   limit?: unknown;
+}
+
+function parseStatusFilter(
+  status: string | undefined,
+  defaultStatus: EntityStatusFilter = "active",
+): EntityStatusFilter {
+  if (status === undefined || status === "") return defaultStatus;
+  if (status === "active" || status === "inactive" || status === "all") {
+    return status;
+  }
+  throw AppError.badRequest("status must be one of: active, inactive, all");
 }
 
 export class CatalogUseCase {
@@ -31,6 +44,7 @@ export class CatalogUseCase {
 
   async getMovies(
     options: GetCatalogMoviesOptions = {},
+    defaultStatus: EntityStatusFilter = "active",
   ): Promise<StandardPaginatedResponse<PlayableContent>> {
     const currentPage = parseStrictPositiveIntParam(options.page, "page", 1);
     const limit = parseStrictPositiveIntParam(options.limit, "limit", 10);
@@ -40,7 +54,12 @@ export class CatalogUseCase {
       resolvedRegion = requireNonEmptyString(options.region, "region");
     }
 
-    let items = await this.playableContentRepository.findAll(resolvedRegion);
+    const resolvedStatus = parseStatusFilter(options.status, defaultStatus);
+
+    let items = await this.playableContentRepository.findAll(
+      resolvedRegion,
+      resolvedStatus,
+    );
 
     if (options.search !== undefined && options.search.trim().length > 0) {
       const term = options.search.trim().toLowerCase();
@@ -55,9 +74,15 @@ export class CatalogUseCase {
     return buildPaginatedResponse(items, currentPage, limit);
   }
 
-  async getMovieByTmdbId(tmdbId: number): Promise<PlayableContent> {
+  async getMovieByTmdbId(
+    tmdbId: number,
+    includeInactive = false,
+  ): Promise<PlayableContent> {
     requirePositiveInteger(tmdbId, "tmdbId");
-    const found = await this.playableContentRepository.findByTmdbId(tmdbId);
+    const found = await this.playableContentRepository.findByTmdbId(
+      tmdbId,
+      includeInactive,
+    );
     if (!found) {
       throw AppError.notFound("Playable content not found");
     }

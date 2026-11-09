@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { AdminUseCase } from "./application/admin.use-case.ts";
 import { AuthUseCase } from "./application/auth.use-case.ts";
 import { CatalogUseCase } from "./application/catalog.use-case.ts";
 import { HistoryUseCase } from "./application/history.use-case.ts";
@@ -40,6 +41,7 @@ export const app = createApp({
   catalogUseCase: new CatalogUseCase(playableContentRepository),
   playbackUseCase: new PlaybackUseCase(playableContentRepository, muxService),
   tmdbUseCase: new TmdbUseCase(tmdbService),
+  adminUseCase: new AdminUseCase(userRepository),
 });
 
 const PORT = process.env.PORT || 3000;
