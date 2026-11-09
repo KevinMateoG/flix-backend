@@ -1,6 +1,7 @@
 import test, { describe } from "node:test";
 import assert from "node:assert/strict";
 import { type AddressInfo } from "node:net";
+import { AdminUseCase } from "../src/application/admin.use-case.ts";
 import { AuthUseCase, type AuthSessionPort } from "../src/application/auth.use-case.ts";
 import { CatalogUseCase } from "../src/application/catalog.use-case.ts";
 import { HistoryUseCase } from "../src/application/history.use-case.ts";
@@ -20,7 +21,14 @@ import {
   type UpdatePlayableContentInput,
 } from "../src/domain/models/playable-content.ts";
 import { type Profile, type UpdateProfileSettingsInput } from "../src/domain/models/profile.ts";
-import { type AuthSession, type User } from "../src/domain/models/user.ts";
+import {
+  type AdminUserRecord,
+  type AuthSession,
+  type EntityStatusFilter,
+  type FindAdminUsersOptions,
+  type UpdateAdminUserInput,
+  type User,
+} from "../src/domain/models/user.ts";
 import {
   type SeasonEpisodeProgress,
   type UpdateWatchHistoryInput,
@@ -36,10 +44,14 @@ import { createApp } from "../src/interface/routers/app.router.ts";
 
 class InMemoryUserRepository implements UserRepository {
   private readonly users = new Map<string, User>();
+  private readonly profiles = new Map<string, Profile>();
 
-  constructor(initial: User[] = []) {
+  constructor(initial: User[] = [], initialProfiles: Profile[] = []) {
     for (const u of initial) {
-      this.users.set(u.id, u);
+      this.users.set(u.id, { ...u, isActive: u.isActive ?? true });
+    }
+    for (const p of initialProfiles) {
+      this.profiles.set(p.id, p);
     }
   }
 
@@ -52,6 +64,108 @@ class InMemoryUserRepository implements UserRepository {
       if (user.email === email) return user;
     }
     return null;
+  }
+
+  private toAdminRecord(u: User): AdminUserRecord {
+    const p = this.profiles.get(u.id);
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      emailVerified: u.emailVerified,
+      image: u.image,
+      role: u.role,
+      isActive: u.isActive ?? true,
+      createdAt: u.createdAt,
+      updatedAt: u.updatedAt,
+      displayName: p?.displayName ?? u.name,
+      avatarUrl: p?.avatarUrl ?? null,
+      plan: p?.plan ?? "free",
+      region: p?.region ?? "US",
+      language: p?.language ?? "en-US",
+      maturityRating: p?.maturityRating ?? "TV-MA",
+      isKids: Boolean(p?.isKids),
+      memberSince: p?.memberSince ?? u.createdAt,
+    };
+  }
+
+  async findAllWithProfiles(
+    options: FindAdminUsersOptions = {},
+  ): Promise<AdminUserRecord[]> {
+    let list = Array.from(this.users.values()).map((u) => this.toAdminRecord(u));
+    const status = options.status ?? "all";
+    if (status === "active") list = list.filter((u) => u.isActive);
+    if (status === "inactive") list = list.filter((u) => !u.isActive);
+    if (options.role) list = list.filter((u) => u.role === options.role);
+    if (options.search && options.search.trim().length > 0) {
+      const term = options.search.trim().toLowerCase();
+      list = list.filter(
+        (u) =>
+          u.name.toLowerCase().includes(term) ||
+          u.email.toLowerCase().includes(term),
+      );
+    }
+    return list;
+  }
+
+  async findByIdWithProfile(id: string): Promise<AdminUserRecord | null> {
+    const u = this.users.get(id);
+    return u ? this.toAdminRecord(u) : null;
+  }
+
+  async updateUserAndProfile(
+    id: string,
+    input: UpdateAdminUserInput,
+  ): Promise<AdminUserRecord | null> {
+    const u = this.users.get(id);
+    if (!u) return null;
+    const updatedUser: User = {
+      ...u,
+      ...(input.name !== undefined ? { name: input.name } : {}),
+      ...(input.email !== undefined ? { email: input.email } : {}),
+      ...(input.role !== undefined ? { role: input.role } : {}),
+      ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+      updatedAt: new Date(),
+    };
+    this.users.set(id, updatedUser);
+
+    const existingProfile = this.profiles.get(id) ?? {
+      id,
+      displayName: updatedUser.name,
+      avatarUrl: null,
+      avatarPath: null,
+      plan: "free",
+      memberSince: updatedUser.createdAt,
+      region: "US",
+      language: "en-US",
+      maturityRating: "TV-MA",
+      isKids: false,
+      regionSource: null,
+    };
+    this.profiles.set(id, {
+      ...existingProfile,
+      ...(input.displayName !== undefined
+        ? { displayName: input.displayName }
+        : input.name !== undefined
+          ? { displayName: input.name }
+          : {}),
+      ...(input.plan !== undefined ? { plan: input.plan } : {}),
+      ...(input.region !== undefined ? { region: input.region } : {}),
+      ...(input.language !== undefined ? { language: input.language } : {}),
+      ...(input.maturityRating !== undefined
+        ? { maturityRating: input.maturityRating }
+        : {}),
+      ...(input.isKids !== undefined ? { isKids: input.isKids } : {}),
+    });
+
+    return this.toAdminRecord(updatedUser);
+  }
+
+  async softDeleteUser(id: string): Promise<boolean> {
+    const u = this.users.get(id);
+    if (!u) return false;
+    this.users.set(id, { ...u, isActive: false, updatedAt: new Date() });
+    return true;
   }
 }
 
@@ -406,16 +520,29 @@ class InMemoryPlayableContentRepository implements PlayableContentRepository {
     }));
   }
 
-  async findAll(region?: string): Promise<PlayableContent[]> {
-    const active = this.items.filter((i) => i.isActive !== false);
-    if (!region) return active;
-    return active.filter((i) => i.availableRegions?.includes(region));
+  async findAll(
+    region?: string,
+    status: EntityStatusFilter = "active",
+  ): Promise<PlayableContent[]> {
+    let filtered = this.items;
+    if (status === "active") {
+      filtered = filtered.filter((i) => i.isActive !== false);
+    } else if (status === "inactive") {
+      filtered = filtered.filter((i) => i.isActive === false);
+    }
+    if (!region) return filtered;
+    return filtered.filter((i) => i.availableRegions?.includes(region));
   }
 
-  async findByTmdbId(tmdbId: number): Promise<PlayableContent | null> {
+  async findByTmdbId(
+    tmdbId: number,
+    includeInactive = false,
+  ): Promise<PlayableContent | null> {
     return (
-      this.items.find((i) => i.tmdbId === tmdbId && i.isActive !== false) ??
-      null
+      this.items.find(
+        (i) =>
+          i.tmdbId === tmdbId && (includeInactive || i.isActive !== false),
+      ) ?? null
     );
   }
 
@@ -532,22 +659,24 @@ function createTestHarness() {
     },
   };
 
-  const userRepository = new InMemoryUserRepository([testUser, adminUser]);
-  const profileRepository = new InMemoryProfileRepository([
-    {
-      id: testUser.id,
-      displayName: testUser.name,
-      avatarUrl: null,
-      avatarPath: null,
-      plan: "standard",
-      memberSince: new Date("2026-01-01T00:00:00.000Z"),
-      region: "US",
-      language: "en-US",
-      maturityRating: "TV-MA",
-      isKids: false,
-      regionSource: null,
-    },
-  ]);
+  const initialProfile: Profile = {
+    id: testUser.id,
+    displayName: testUser.name,
+    avatarUrl: null,
+    avatarPath: null,
+    plan: "standard",
+    memberSince: new Date("2026-01-01T00:00:00.000Z"),
+    region: "US",
+    language: "en-US",
+    maturityRating: "TV-MA",
+    isKids: false,
+    regionSource: null,
+  };
+  const userRepository = new InMemoryUserRepository(
+    [testUser, adminUser],
+    [initialProfile],
+  );
+  const profileRepository = new InMemoryProfileRepository([initialProfile]);
   const libraryRepository = new InMemoryLibraryRepository();
   const watchHistoryRepository = new InMemoryWatchHistoryRepository();
   const playableContentRepository = new InMemoryPlayableContentRepository([
@@ -609,6 +738,7 @@ function createTestHarness() {
       playbackStreamPort,
     ),
     tmdbUseCase: new TmdbUseCase(tmdbGateway),
+    adminUseCase: new AdminUseCase(userRepository),
   });
 
   return { app, watchHistoryRepository };
@@ -917,6 +1047,78 @@ describe("Flix Backend Clean Architecture Contracts & Smoke Tests", () => {
 
       const detailsNotFoundRes = await fetch(`${baseUrl}/api/tmdb/details/40404`);
       assert.equal(detailsNotFoundRes.status, 404);
+
+      // 8. Admin routes (/api/admin/ping, /api/admin/users, /api/admin/movies)
+      const unauthAdminPing = await fetch(`${baseUrl}/api/admin/ping`);
+      assert.equal(unauthAdminPing.status, 401);
+
+      const userAdminPing = await fetch(`${baseUrl}/api/admin/ping`, {
+        headers: authHeaders,
+      });
+      assert.equal(userAdminPing.status, 403);
+
+      const adminPingRes = await fetch(`${baseUrl}/api/admin/ping`, {
+        headers: adminHeaders,
+      });
+      assert.equal(adminPingRes.status, 200);
+      assert.deepEqual(await adminPingRes.json(), { ok: true, role: "admin" });
+
+      const adminUsersRes = await fetch(
+        `${baseUrl}/api/admin/users?page=1&limit=10`,
+        { headers: adminHeaders },
+      );
+      assert.equal(adminUsersRes.status, 200);
+      const adminUsersPage =
+        (await adminUsersRes.json()) as StandardPaginatedResponse<AdminUserRecord>;
+      assert.equal(adminUsersPage.data.length, 2);
+      assert.equal(adminUsersPage.pagination.total, 2);
+
+      // Self-deactivation guard for admin
+      const selfDeleteRes = await fetch(`${baseUrl}/api/admin/users/admin_1`, {
+        method: "DELETE",
+        headers: adminHeaders,
+      });
+      assert.equal(selfDeleteRes.status, 400);
+
+      // Admin updates user_1 data and profile preferences
+      const updateUserRes = await fetch(`${baseUrl}/api/admin/users/user_1`, {
+        method: "PATCH",
+        headers: adminHeaders,
+        body: JSON.stringify({
+          name: "Updated User One",
+          region: "CO",
+          plan: "premium",
+        }),
+      });
+      assert.equal(updateUserRes.status, 200);
+      const updatedUserRecord = (await updateUserRes.json()) as AdminUserRecord;
+      assert.equal(updatedUserRecord.name, "Updated User One");
+      assert.equal(updatedUserRecord.region, "CO");
+      assert.equal(updatedUserRecord.plan, "premium");
+
+      // Admin logically deletes user_1
+      const deleteUserRes = await fetch(`${baseUrl}/api/admin/users/user_1`, {
+        method: "DELETE",
+        headers: adminHeaders,
+      });
+      assert.equal(deleteUserRes.status, 200);
+      assert.deepEqual(await deleteUserRes.json(), { success: true });
+
+      // Deactivated user is rejected on protected routes
+      const deactivatedProfileRes = await fetch(`${baseUrl}/api/profile/me`, {
+        headers: authHeaders,
+      });
+      assert.equal(deactivatedProfileRes.status, 403);
+
+      // Admin can inspect all movies including logically deleted ones
+      const adminMoviesAllRes = await fetch(
+        `${baseUrl}/api/admin/movies?status=all&page=1&limit=10`,
+        { headers: adminHeaders },
+      );
+      assert.equal(adminMoviesAllRes.status, 200);
+      const adminMoviesAllPage =
+        (await adminMoviesAllRes.json()) as StandardPaginatedResponse<PlayableContent>;
+      assert.equal(adminMoviesAllPage.data.length, 2);
     } finally {
       server.close();
     }

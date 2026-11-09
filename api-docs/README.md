@@ -24,6 +24,7 @@ Complete reference documentation and OpenAPI 3.0 (Swagger) specification for the
    - [3.6 Watch History (`/api/watch-history`)](#36-watch-history-apiwatch-history)
    - [3.7 My List (`/api/my-list`)](#37-my-list-apimy-list)
    - [3.8 Dislikes (`/api/dislikes`)](#38-dislikes-apidislikes)
+   - [3.9 Administration (`/api/admin`)](#39-administration-apiadmin)
 4. [Data Models](#4-data-models)
 
 ---
@@ -906,6 +907,71 @@ Checks whether a specific title is marked as disliked by the authenticated user.
   - `400 Bad Request`: `{ "error": "tmdbId and mediaType are required" }`
   - `401 Unauthorized`: `{ "error": "Unauthorized" }`
   - `500 Internal Server Error`: `{ "error": "<message>" }`
+
+---
+
+### 3.9 Administration (`/api/admin`)
+
+Defined in `src/interface/routers/admin.router.ts`. All endpoints in this group require authentication (`authMiddleware`) and the `admin` role (`requireAdminMiddleware`). Standard users (`role = "user"`) receive `403 Forbidden`.
+
+#### `GET /api/admin/ping`
+
+Verifies that the active session belongs to an administrator.
+
+- **Authentication**: Required (`admin` role)
+- **Response (`200 OK`)**:
+  ```json
+  {
+    "ok": true,
+    "role": "admin"
+  }
+  ```
+
+---
+
+#### `GET /api/admin/users`
+
+Returns a paginated list of all users joined with their profile preferences.
+
+- **Authentication**: Required (`admin` role)
+- **Query Parameters**:
+  | Parameter | Type | Required | Default | Description |
+  | --- | --- | --- | --- | --- |
+  | `page` | `number` | No | `1` | Positive page number. |
+  | `limit` | `number` | No | `10` | Positive items per page. |
+  | `search` | `string` | No | — | Filters by name, email, display name, or user ID. |
+  | `role` | `'admin' \| 'user' \| 'all'` | No | `all` | Filters by user role. |
+  | `status` | `'active' \| 'inactive' \| 'all'` | No | `all` | Filters by logical deletion status (`isActive`). |
+
+---
+
+#### `PATCH /api/admin/users/:id`
+
+Updates user account fields (`name`, `email`, `role`, `isActive`) and profile preferences (`displayName`, `plan`, `region`, `language`, `maturityRating`, `isKids`). Prevents administrators from demoting or deactivating their own active account.
+
+- **Authentication**: Required (`admin` role)
+
+---
+
+#### `DELETE /api/admin/users/:id`
+
+Performs logical deletion (`isActive = false`) on the target user and revokes their active sessions. Prevents administrators from deactivating their own account.
+
+- **Authentication**: Required (`admin` role)
+- **Response (`200 OK`)**:
+  ```json
+  {
+    "success": true
+  }
+  ```
+
+---
+
+#### `GET /api/admin/movies`
+
+Returns a paginated list of all playable content entries (`status = 'all' | 'active' | 'inactive'`), with optional `region` and `search` filters.
+
+- **Authentication**: Required (`admin` role)
 
 ---
 
