@@ -36,6 +36,7 @@ export async function update_watch_progress(data: WatchProgressInput) {
       durationSeconds: data.durationSeconds,
       completed,
       completedAt: completed ? new Date() : null,
+      isActive: true,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
@@ -51,6 +52,7 @@ export async function update_watch_progress(data: WatchProgressInput) {
         durationSeconds: data.durationSeconds,
         completed,
         completedAt: completed ? new Date() : null,
+        isActive: true,
         updatedAt: new Date(),
         title: data.title,
         posterPath: data.posterPath,
@@ -67,7 +69,13 @@ export async function get_continue_watching(profileId: string, limit = 10) {
       and(
         eq(schemas.watchHistory.profileId, profileId),
         eq(schemas.watchHistory.completed, false),
+        eq(schemas.watchHistory.isActive, true),
         gt(schemas.watchHistory.progressSeconds, 0),
+        sql`NOT EXISTS (
+          SELECT 1 FROM ${schemas.playableContent}
+          WHERE ${schemas.playableContent.tmdbId} = ${schemas.watchHistory.tmdbId}
+            AND ${schemas.playableContent.isActive} = false
+        )`,
       ),
     )
     .orderBy(desc(schemas.watchHistory.updatedAt))
@@ -87,6 +95,12 @@ export async function get_season_progress(profileId: string, tmdbId: number, sea
         eq(schemas.watchHistory.profileId, profileId),
         eq(schemas.watchHistory.tmdbId, tmdbId),
         eq(schemas.watchHistory.seasonNumber, seasonNumber),
+        eq(schemas.watchHistory.isActive, true),
+        sql`NOT EXISTS (
+          SELECT 1 FROM ${schemas.playableContent}
+          WHERE ${schemas.playableContent.tmdbId} = ${schemas.watchHistory.tmdbId}
+            AND ${schemas.playableContent.isActive} = false
+        )`,
       ),
     );
 }
