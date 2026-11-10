@@ -706,7 +706,13 @@ function createTestHarness() {
       return { page: 1, results: [{ id: 157336, title: "Interstellar" }] };
     },
     async search(query: string) {
-      return { page: 1, results: [{ id: 157336, title: query }] };
+      return {
+        page: 1,
+        results: [
+          { id: 157336, title: query },
+          { id: 27205, title: "Inception" },
+        ],
+      };
     },
     async movieDetails(id: number) {
       if (id === 157336) return { id: 157336, title: "Interstellar" };
@@ -737,7 +743,7 @@ function createTestHarness() {
       playableContentRepository,
       playbackStreamPort,
     ),
-    tmdbUseCase: new TmdbUseCase(tmdbGateway),
+    tmdbUseCase: new TmdbUseCase(tmdbGateway, playableContentRepository),
     adminUseCase: new AdminUseCase(userRepository),
   });
 
@@ -1004,6 +1010,15 @@ describe("Flix Backend Clean Architecture Contracts & Smoke Tests", () => {
       const deletedMovieGetRes = await fetch(`${baseUrl}/api/movies/27205`);
       assert.equal(deletedMovieGetRes.status, 404);
 
+      // Public /api/movies ignores ?status=all and never returns inactive movies
+      const publicMoviesAllRes = await fetch(
+        `${baseUrl}/api/movies?status=all&page=1&limit=10`,
+      );
+      assert.equal(publicMoviesAllRes.status, 200);
+      const publicMoviesAll =
+        (await publicMoviesAllRes.json()) as StandardPaginatedResponse<PlayableContent>;
+      assert.equal(publicMoviesAll.data.some((m) => m.tmdbId === 27205), false);
+
       const playableRes = await fetch(
         `${baseUrl}/api/movies/157336/playable?region=BR`,
       );
@@ -1030,6 +1045,11 @@ describe("Flix Backend Clean Architecture Contracts & Smoke Tests", () => {
         `${baseUrl}/api/tmdb/search?q=Interstellar`,
       );
       assert.equal(validSearchRes.status, 200);
+      const validSearchData = (await validSearchRes.json()) as {
+        results: Array<{ id: number }>;
+      };
+      assert.equal(validSearchData.results.some((r) => r.id === 27205), false);
+      assert.equal(validSearchData.results.some((r) => r.id === 157336), true);
 
       const detailsMovieRes = await fetch(`${baseUrl}/api/tmdb/details/157336`);
       assert.equal(detailsMovieRes.status, 200);

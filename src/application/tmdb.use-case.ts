@@ -1,6 +1,7 @@
 import { AppError } from "./errors/app.error.ts";
 import { normalizePage, type PaginatedResult } from "./pagination.ts";
 import { type MediaType } from "../domain/models/library-item.ts";
+import { type PlayableContentRepository } from "../domain/repository/playable-content.repository.ts";
 import {
   requireMediaType,
   requireNonEmptyString,
@@ -49,9 +50,37 @@ export interface TmdbGatewayPort {
 
 export class TmdbUseCase {
   private readonly tmdbGateway: TmdbGatewayPort;
+  private readonly playableContentRepository?: PlayableContentRepository;
 
-  constructor(tmdbGateway: TmdbGatewayPort) {
+  constructor(
+    tmdbGateway: TmdbGatewayPort,
+    playableContentRepository?: PlayableContentRepository,
+  ) {
     this.tmdbGateway = tmdbGateway;
+    this.playableContentRepository = playableContentRepository;
+  }
+
+  private async filterInactiveResults(
+    paginated: PaginatedResult,
+  ): Promise<PaginatedResult> {
+    if (!this.playableContentRepository || paginated.results.length === 0) {
+      return paginated;
+    }
+
+    const inactiveItems = await this.playableContentRepository.findAll(
+      undefined,
+      "inactive",
+    );
+    if (inactiveItems.length === 0) {
+      return paginated;
+    }
+
+    const inactiveIds = new Set(inactiveItems.map((item) => item.tmdbId));
+    const results = paginated.results.filter(
+      (item) => !(typeof item.id === "number" && inactiveIds.has(item.id)),
+    );
+
+    return { ...paginated, results };
   }
 
   async searchContent(
@@ -70,11 +99,12 @@ export class TmdbUseCase {
       return { results: [] };
     }
 
-    return this.tmdbGateway.search(
+    const data = await this.tmdbGateway.search(
       query.trim(),
       normalizePage(page, 1),
       resolvedLanguage,
     );
+    return this.filterInactiveResults(data);
   }
 
   async getTrending(
@@ -89,11 +119,12 @@ export class TmdbUseCase {
       throw AppError.badRequest("timeWindow must be day or week");
     }
     const resolvedLanguage = requireNonEmptyString(language, "language");
-    return this.tmdbGateway.trending(
+    const data = await this.tmdbGateway.trending(
       mediaType || "all",
       timeWindow || "week",
       resolvedLanguage,
     );
+    return this.filterInactiveResults(data);
   }
 
   async getPopular(
@@ -108,12 +139,13 @@ export class TmdbUseCase {
     }
     const resolvedRegion = requireNonEmptyString(region, "region");
     const resolvedLanguage = requireNonEmptyString(language, "language");
-    return this.tmdbGateway.popular(
+    const data = await this.tmdbGateway.popular(
       resolvedMediaType,
       normalizePage(page, 1),
       resolvedRegion,
       resolvedLanguage,
     );
+    return this.filterInactiveResults(data);
   }
 
   async getTopRated(
@@ -128,12 +160,13 @@ export class TmdbUseCase {
     }
     const resolvedRegion = requireNonEmptyString(region, "region");
     const resolvedLanguage = requireNonEmptyString(language, "language");
-    return this.tmdbGateway.topRated(
+    const data = await this.tmdbGateway.topRated(
       resolvedMediaType,
       normalizePage(page, 1),
       resolvedRegion,
       resolvedLanguage,
     );
+    return this.filterInactiveResults(data);
   }
 
   async getMovieDetails(

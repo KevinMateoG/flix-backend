@@ -1,4 +1,4 @@
-import { and, desc, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt, sql } from "drizzle-orm";
 import { db } from "./client.ts";
 import * as schema from "./schema.ts";
 import {
@@ -8,6 +8,14 @@ import {
   type WatchHistoryItem,
 } from "../../domain/models/watch-history.ts";
 import { type WatchHistoryRepository } from "../../domain/repository/watch-history.repository.ts";
+
+function notDeactivatedMovieCondition() {
+  return sql`NOT EXISTS (
+    SELECT 1 FROM ${schema.playableContent}
+    WHERE ${schema.playableContent.tmdbId} = ${schema.watchHistory.tmdbId}
+      AND ${schema.playableContent.isActive} = false
+  )`;
+}
 
 export class DrizzleWatchHistoryRepository implements WatchHistoryRepository {
   async upsertProgress(record: UpsertWatchHistoryRecord): Promise<void> {
@@ -65,6 +73,7 @@ export class DrizzleWatchHistoryRepository implements WatchHistoryRepository {
           eq(schema.watchHistory.completed, false),
           eq(schema.watchHistory.isActive, true),
           gt(schema.watchHistory.progressSeconds, 0),
+          notDeactivatedMovieCondition(),
         ),
       )
       .orderBy(desc(schema.watchHistory.updatedAt))
@@ -89,6 +98,7 @@ export class DrizzleWatchHistoryRepository implements WatchHistoryRepository {
           eq(schema.watchHistory.tmdbId, tmdbId),
           eq(schema.watchHistory.seasonNumber, seasonNumber),
           eq(schema.watchHistory.isActive, true),
+          notDeactivatedMovieCondition(),
         ),
       );
   }
@@ -105,6 +115,7 @@ export class DrizzleWatchHistoryRepository implements WatchHistoryRepository {
           eq(schema.watchHistory.id, id),
           eq(schema.watchHistory.profileId, profileId),
           eq(schema.watchHistory.isActive, true),
+          notDeactivatedMovieCondition(),
         ),
       )
       .limit(1);
@@ -154,6 +165,7 @@ export class DrizzleWatchHistoryRepository implements WatchHistoryRepository {
           eq(schema.watchHistory.id, id),
           eq(schema.watchHistory.profileId, profileId),
           eq(schema.watchHistory.isActive, true),
+          notDeactivatedMovieCondition(),
         ),
       )
       .returning({ id: schema.watchHistory.id });

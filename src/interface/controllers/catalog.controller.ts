@@ -17,7 +17,6 @@ export class CatalogController {
     try {
       const region = req.query.region as string | undefined;
       const search = req.query.search as string | undefined;
-      const status = req.query.status as string | undefined;
       const page = req.query.page;
       const limit = req.query.limit;
 
@@ -25,7 +24,7 @@ export class CatalogController {
         {
           region,
           search,
-          status,
+          status: "active",
           page,
           limit,
         },

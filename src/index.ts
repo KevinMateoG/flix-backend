@@ -42,7 +42,7 @@ export const app = createApp(
     historyUseCase: new HistoryUseCase(watchHistoryRepository),
     catalogUseCase: new CatalogUseCase(playableContentRepository),
     playbackUseCase: new PlaybackUseCase(playableContentRepository, muxService),
-    tmdbUseCase: new TmdbUseCase(tmdbService),
+    tmdbUseCase: new TmdbUseCase(tmdbService, playableContentRepository),
     adminUseCase: new AdminUseCase(userRepository),
   },
   express(),
