@@ -1,0 +1,2 @@
+ALTER TABLE "profiles" ADD COLUMN "avatar_path" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "watch_history_profile_content_episode_idx" ON "watch_history" ("profile_id","tmdb_id","media_type","season_number","episode_number");

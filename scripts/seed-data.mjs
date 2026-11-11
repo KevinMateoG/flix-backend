@@ -7,21 +7,25 @@ const users = [
     id: "67ed486a-bd4b-4445-850c-f1b12d4d84fb",
     name: "Flix Test One",
     email: "test1@flix.local",
+    role: "admin"
   },
   {
     id: "1cc8b544-2456-4a21-a694-aad2859f013c",
     name: "Flix Test Two",
     email: "test2@flix.local",
+    role: "user"
   },
   {
     id: "4795a4cb-6d93-41e6-ad29-c45c54f236c8",
     name: "Flix Test Three",
     email: "test3@flix.local",
+    role: "user"
   },
   {
     id: "b850a939-aa35-4b00-8157-6b250905ff58",
     name: "Flix Test Four",
     email: "test4@flix.local",
+    role: "user"
   },
 ];
 
@@ -76,10 +80,10 @@ async function seedUsers() {
 
   for (const user of users) {
     await client.query(
-      `insert into "user" ("id", "name", "email", "emailVerified", "createdAt", "updatedAt")
-       values ($1, $2, $3, true, now(), now())
-       on conflict ("id") do nothing`,
-      [user.id, user.name, user.email],
+      `insert into "user" ("id", "name", "email", "emailVerified", "role", "createdAt", "updatedAt")
+       values ($1, $2, $3, true, $4, now(), now())
+       on conflict ("id") do update set "role" = excluded."role", "name" = excluded."name"`,
+      [user.id, user.name, user.email, user.role],
     );
 
     await client.query(
