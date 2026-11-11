@@ -2,7 +2,7 @@
 
 API REST del proyecto **Flix**, una plataforma full-stack de streaming y descubrimiento de películas y series desarrollada como Proyecto de Aula de Desarrollo Web Full-Stack (2026-2). Implementada en **Node.js**, **Express** y **TypeScript** bajo **Clean Architecture (Arquitectura Limpia en 4 capas)** y preparada para despliegue Serverless en **Vercel** conectado a **Neon (PostgreSQL Serverless)**.
 
-Se conecta de forma integral con el [frontend de Flix](https://github.com/KevinMateoG/flix-frontend) (Next.js 16 App Router), gestionando la autenticación robusta mediante **Better Auth** con sesiones y control de acceso basado en roles (`admin` y `user`), almacenamiento de imágenes en un **Bucket S3** (Neon Object Storage), catálogo reproducible con streaming HLS de **Mux** y metadatos sincronizados con **TMDB**.
+Se conecta de forma integral con el [frontend de Flix](https://flix-frontend-nine.vercel.app/) (Next.js 16 App Router), gestionando la autenticación robusta mediante **Better Auth** con sesiones y control de acceso basado en roles (`admin` y `user`), almacenamiento de imágenes en un **Bucket S3** (Neon Object Storage), catálogo reproducible con streaming HLS de **Mux** y metadatos sincronizados con **TMDB**.
 
 ---
 
@@ -31,10 +31,10 @@ Se conecta de forma integral con el [frontend de Flix](https://github.com/KevinM
 
 | Elemento | Plataforma | Enlace |
 | --- | --- | --- |
-| **Backend / API desplegada (Producción)** | Vercel | `[PEGAR_LINK_BACKEND_VERCEL_AQUI]` |
-| **Frontend desplegado (Producción)** | Vercel | `[PEGAR_LINK_FRONTEND_VERCEL_AQUI]` |
-| **Swagger UI Interactivo (API Docs)** | Vercel / Local | `[URL_BACKEND]/api-docs` |
-| **Especificación OpenAPI 3.0 (JSON)** | Vercel / Local | `[URL_BACKEND]/api-docs.json` |
+| **Backend / API desplegada (Producción)** | Vercel | `[https://flix-backend-six.vercel.app/]` |
+| **Frontend desplegado (Producción)** | Vercel | `[https://flix-frontend-nine.vercel.app/]` |
+| **Swagger UI Interactivo (API Docs)** | Vercel / Local | `[[URL_BACKEND](https://flix-backend-six.vercel.app)]/api-docs` |
+| **Especificación OpenAPI 3.0 (JSON)** | Vercel / Local | `[https://flix-backend-six.vercel.app]/api-docs.json` |
 | **Repositorio Backend** | GitHub | [https://github.com/KevinMateoG/flix-backend](https://github.com/KevinMateoG/flix-backend) |
 | **Repositorio Frontend** | GitHub | [https://github.com/KevinMateoG/flix-frontend](https://github.com/KevinMateoG/flix-frontend) |
 
