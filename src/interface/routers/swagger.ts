@@ -694,6 +694,62 @@ export const openApiSpec = {
         },
       },
     },
+    '/api/tmdb/discover': {
+      get: {
+        tags: ['TMDB'],
+        summary: 'Discover movies by genre',
+        description:
+          'Discovers popular movies from TMDB optionally filtered by genre. Titles deactivated by an admin are excluded.',
+        parameters: [
+          {
+            name: 'genre',
+            in: 'query',
+            required: false,
+            description: 'TMDB genre id (or "all").',
+            schema: { type: 'string', example: '28' },
+          },
+          {
+            name: 'page',
+            in: 'query',
+            required: false,
+            description: 'Results page number.',
+            schema: { type: 'integer', default: 1, example: 1 },
+          },
+          {
+            name: 'region',
+            in: 'query',
+            required: false,
+            description: 'ISO 3166-1 alpha-2 country code.',
+            schema: { type: 'string', default: 'US', example: 'US' },
+          },
+          {
+            name: 'language',
+            in: 'query',
+            required: false,
+            description: 'Localization language tag.',
+            schema: { type: 'string', default: 'en-US', example: 'en-US' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Paginated discover results without deactivated titles.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/TMDBPaginatedResponse' },
+              },
+            },
+          },
+          '400': {
+            description: 'Invalid query parameters.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/tmdb/top-rated': {
       get: {
         tags: ['TMDB'],

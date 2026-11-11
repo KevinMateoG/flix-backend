@@ -714,6 +714,15 @@ function createTestHarness() {
         ],
       };
     },
+    async discover() {
+      return {
+        page: 1,
+        results: [
+          { id: 157336, title: "Interstellar" },
+          { id: 27205, title: "Inception" },
+        ],
+      };
+    },
     async movieDetails(id: number) {
       if (id === 157336) return { id: 157336, title: "Interstellar" };
       throw new Error("TMDB 404");
@@ -1050,6 +1059,26 @@ describe("Flix Backend Clean Architecture Contracts & Smoke Tests", () => {
       };
       assert.equal(validSearchData.results.some((r) => r.id === 27205), false);
       assert.equal(validSearchData.results.some((r) => r.id === 157336), true);
+
+      // Discover (genre browsing) also hides deactivated movies
+      const discoverRes = await fetch(
+        `${baseUrl}/api/tmdb/discover?genre=28&region=US`,
+      );
+      assert.equal(discoverRes.status, 200);
+      const discoverData = (await discoverRes.json()) as {
+        results: Array<{ id: number }>;
+      };
+      assert.equal(discoverData.results.some((r) => r.id === 27205), false);
+      assert.equal(discoverData.results.some((r) => r.id === 157336), true);
+
+      const invalidDiscoverRes = await fetch(
+        `${baseUrl}/api/tmdb/discover?genre=abc`,
+      );
+      assert.equal(invalidDiscoverRes.status, 400);
+
+      // Detail of a deactivated movie is no longer reachable
+      const deactivatedDetailRes = await fetch(`${baseUrl}/api/tmdb/movie/27205`);
+      assert.equal(deactivatedDetailRes.status, 404);
 
       const detailsMovieRes = await fetch(`${baseUrl}/api/tmdb/details/157336`);
       assert.equal(detailsMovieRes.status, 200);

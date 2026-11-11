@@ -109,6 +109,28 @@ export class TmdbController {
     }
   };
 
+  discover = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const genre = req.query.genre as string | undefined;
+      const page = Number(req.query.page) || 1;
+      const region = (req.query.region as string) || "US";
+      const language = (req.query.language as string) || "en-US";
+      const data = await this.tmdbUseCase.discoverMovies(
+        genre,
+        page,
+        region,
+        language,
+      );
+      res.json(data);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   tvDetails = async (
     req: Request,
     res: Response,

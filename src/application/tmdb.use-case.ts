@@ -39,6 +39,10 @@ export interface TmdbGatewayPort {
     page?: number,
     language?: string,
   ): Promise<PaginatedResult>;
+  discover(
+    params: Record<string, string>,
+    language?: string,
+  ): Promise<PaginatedResult>;
   movieDetails(id: number, language?: string): Promise<TmdbEntityDetails>;
   tvDetails(id: number, language?: string): Promise<TmdbEntityDetails>;
   seasonDetails(
@@ -76,11 +80,55 @@ export class TmdbUseCase {
     }
 
     const inactiveIds = new Set(inactiveItems.map((item) => item.tmdbId));
-    const results = paginated.results.filter(
-      (item) => !(typeof item.id === "number" && inactiveIds.has(item.id)),
-    );
+    const results = paginated.results.filter((item) => {
+      // TMDB movie and TV ids live in separate namespaces; playable content
+      // only stores movies, so never hide a TV show that shares an id.
+      if (item.media_type === "tv" || item.media_type === "person") {
+        return true;
+      }
+      return !(typeof item.id === "number" && inactiveIds.has(item.id));
+    });
 
     return { ...paginated, results };
+  }
+
+  private async assertMovieNotDeactivated(tmdbId: number): Promise<void> {
+    if (!this.playableContentRepository) return;
+    const record = await this.playableContentRepository.findByTmdbId(
+      tmdbId,
+      true,
+    );
+    if (record && record.isActive === false) {
+      throw AppError.notFound("Content not available");
+    }
+  }
+
+  async discoverMovies(
+    genre?: string,
+    page?: number,
+    region = "US",
+    language = "en-US",
+  ): Promise<PaginatedResult> {
+    if (page !== undefined) {
+      requirePositiveInteger(page, "page");
+    }
+    const resolvedRegion = requireNonEmptyString(region, "region");
+    const resolvedLanguage = requireNonEmptyString(language, "language");
+
+    const params: Record<string, string> = {
+      page: String(normalizePage(page, 1)),
+      region: resolvedRegion,
+      watch_region: resolvedRegion,
+    };
+    if (genre && genre !== "all") {
+      if (!/^\d+(,\d+)*$/.test(genre)) {
+        throw AppError.badRequest("genre must be a numeric TMDB genre id");
+      }
+      params.with_genres = genre;
+    }
+
+    const data = await this.tmdbGateway.discover(params, resolvedLanguage);
+    return this.filterInactiveResults(data);
   }
 
   async searchContent(
@@ -175,6 +223,7 @@ export class TmdbUseCase {
   ): Promise<TmdbEntityDetails> {
     requirePositiveInteger(id, "id");
     const resolvedLanguage = requireNonEmptyString(language, "language");
+    await this.assertMovieNotDeactivated(id);
 
     return this.tmdbGateway.movieDetails(
       id,
