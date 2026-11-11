@@ -9,7 +9,7 @@ import { type AuthSession } from "../../domain/models/user.ts";
 
 const profileRepository = new DrizzleProfileRepository();
 
-const trustedOrigins = (
+const configuredOrigins = (
   process.env.BETTER_AUTH_TRUSTED_ORIGINS ??
   [process.env.FRONTEND_URL, process.env.BACKEND_URL]
     .filter(Boolean)
@@ -18,6 +18,15 @@ const trustedOrigins = (
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+const trustedOrigins = Array.from(
+  new Set([
+    ...configuredOrigins,
+    "https://*.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+  ]),
+);
 
 export const auth = betterAuth({
   trustedOrigins,

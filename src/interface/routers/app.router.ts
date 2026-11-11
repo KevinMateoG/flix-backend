@@ -48,8 +48,10 @@ export interface AppDependencies {
   adminUseCase?: AdminUseCase;
 }
 
-export function createApp(deps: AppDependencies): Express {
-  const app: Express = express();
+export function createApp(
+  deps: AppDependencies,
+  app: Express = express(),
+): Express {
 
   const authMiddleware = createAuthMiddleware(deps.authUseCase);
   const profileController = new ProfileController(deps.profileUseCase);
@@ -59,7 +61,28 @@ export function createApp(deps: AppDependencies): Express {
   const playbackController = new PlaybackController(deps.playbackUseCase);
   const tmdbController = new TmdbController(deps.tmdbUseCase);
 
-  app.use(cors({ origin: process.env.FRONTEND_URL || "*", credentials: true }));
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin) {
+          callback(null, true);
+          return;
+        }
+        const allowedFrontend = process.env.FRONTEND_URL;
+        if (
+          !allowedFrontend ||
+          origin === allowedFrontend ||
+          origin.endsWith(".vercel.app") ||
+          origin.startsWith("http://localhost:")
+        ) {
+          callback(null, true);
+          return;
+        }
+        callback(null, allowedFrontend);
+      },
+      credentials: true,
+    }),
+  );
 
   app.use("/api/auth", deps.authHandler);
 
