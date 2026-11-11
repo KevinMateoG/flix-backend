@@ -44,8 +44,10 @@ export interface AppDependencies {
   tmdbUseCase: TmdbUseCase;
 }
 
-export function createApp(deps: AppDependencies): Express {
-  const app: Express = express();
+export function createApp(
+  deps: AppDependencies,
+  app: Express = express(),
+): Express {
 
   const authMiddleware = createAuthMiddleware(deps.authUseCase);
   const profileController = new ProfileController(deps.profileUseCase);

@@ -1,4 +1,5 @@
 import "dotenv/config";
+import express from "express";
 import { AuthUseCase } from "./application/auth.use-case.ts";
 import { CatalogUseCase } from "./application/catalog.use-case.ts";
 import { HistoryUseCase } from "./application/history.use-case.ts";
@@ -27,20 +28,23 @@ const libraryRepository = new DrizzleLibraryRepository();
 const watchHistoryRepository = new DrizzleWatchHistoryRepository();
 const sessionAdapter = new BetterAuthSessionAdapter();
 
-export const app = createApp({
-  authHandler,
-  authUseCase: new AuthUseCase(
-    sessionAdapter,
-    userRepository,
-    profileRepository,
-  ),
-  profileUseCase: new ProfileUseCase(profileRepository, avatarStorage),
-  libraryUseCase: new LibraryUseCase(libraryRepository),
-  historyUseCase: new HistoryUseCase(watchHistoryRepository),
-  catalogUseCase: new CatalogUseCase(playableContentRepository),
-  playbackUseCase: new PlaybackUseCase(playableContentRepository, muxService),
-  tmdbUseCase: new TmdbUseCase(tmdbService),
-});
+export const app = createApp(
+  {
+    authHandler,
+    authUseCase: new AuthUseCase(
+      sessionAdapter,
+      userRepository,
+      profileRepository,
+    ),
+    profileUseCase: new ProfileUseCase(profileRepository, avatarStorage),
+    libraryUseCase: new LibraryUseCase(libraryRepository),
+    historyUseCase: new HistoryUseCase(watchHistoryRepository),
+    catalogUseCase: new CatalogUseCase(playableContentRepository),
+    playbackUseCase: new PlaybackUseCase(playableContentRepository, muxService),
+    tmdbUseCase: new TmdbUseCase(tmdbService),
+  },
+  express(),
+);
 
 const PORT = process.env.PORT || 3000;
 
